@@ -12,6 +12,7 @@ import {
 
 export const metadata: Metadata = {
   title: "Головна",
+
 };
 
 export default function DashboardPage() {
@@ -26,7 +27,7 @@ export default function DashboardPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       {/* Welcome banner — reads session user client-side */}
-      <WelcomeBanner />
+      {/* <WelcomeBanner /> */}
 
       {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

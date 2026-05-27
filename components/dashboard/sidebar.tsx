@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  BookMarked,
   Calendar,
   ClipboardList,
   LayoutDashboard,
@@ -15,8 +16,9 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Головна" },
-  { href: "/dashboard/schedule", icon: Calendar, label: "Розклад" },
-  { href: "/dashboard/grades", icon: BarChart3, label: "Оцінки" },
+  { href: "/dashboard/elective-courses", icon: BookMarked, label: "Вибіркові дисципліни" },
+  { href: "/dashboard/schedule", icon: Calendar, label: "Розклад занять" },
+  { href: "/dashboard/grades", icon: BarChart3, label: "Успішність" },
   { href: "/dashboard/assignments", icon: ClipboardList, label: "Завдання" },
 ];
 
@@ -78,21 +80,21 @@ export function Sidebar({ collapsed }: SidebarProps) {
               className={cn(
                 "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors relative",
                 active
-                  ? "bg-kpefk-light text-kpefk"
+                  ? "bg-primary-light dark:text-white"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
               {active && (
                 <motion.span
                   layoutId="sidebar-indicator"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-kpefk"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-primary"
                   transition={{ type: "spring", stiffness: 400, damping: 35 }}
                 />
               )}
               <Icon
                 className={cn(
                   "shrink-0 w-5 h-5 transition-colors",
-                  active ? "text-kpefk" : "text-muted-foreground group-hover:text-foreground"
+                  active ? "dark:text-primary text-dark" : "text-muted-foreground group-hover:text-foreground"
                 )}
               />
               <motion.span
@@ -121,7 +123,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
               className={cn(
                 "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                 active
-                  ? "bg-kpefk-light text-kpefk"
+                  ? "bg-primary-light text-primary"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >

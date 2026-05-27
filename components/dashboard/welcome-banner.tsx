@@ -47,7 +47,7 @@ export function WelcomeBanner() {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl bg-kpefk p-5 sm:p-8 text-kpefk-foreground"
+      className="rounded-2xl bg-primary p-5 sm:p-8 text-primary-foreground"
     >
       <p className="text-xs sm:text-sm font-medium opacity-80 mb-1">
         {weekday}, {day} {month} {year}

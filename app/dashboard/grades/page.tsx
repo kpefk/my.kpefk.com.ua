@@ -15,13 +15,13 @@ const GRADE_TYPE_LABEL: Record<string, string> = {
 
 function gradeColor(v: number) {
   if (v >= 5) return "text-green-600 dark:text-green-400";
-  if (v >= 4) return "text-kpefk";
+  if (v >= 4) return "text-primary";
   return "text-orange-500";
 }
 
 function avgColor(v: number) {
   if (v >= 4.5) return "text-green-600 dark:text-green-400";
-  if (v >= 3.5) return "text-kpefk";
+  if (v >= 3.5) return "text-primary";
   return "text-orange-500";
 }
 
@@ -42,7 +42,7 @@ function SubjectRow({ subject, open, onToggle }: {
           <p className="font-semibold text-sm truncate">{subject.name}</p>
           <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
             <motion.div
-              className="h-full rounded-full bg-kpefk"
+              className="h-full rounded-full bg-primary"
               initial={{ width: 0 }}
               animate={{ width: `${pct}%` }}
               transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -111,12 +111,12 @@ export default function GradesPage() {
       </div>
 
       {/* Summary card */}
-      <div className="rounded-2xl bg-kpefk p-5 sm:p-6 text-kpefk-foreground flex items-center gap-6">
+      <div className="rounded-2xl bg-primary p-5 sm:p-6 text-primary-foreground flex items-center gap-6">
         <div>
           <p className="text-xs opacity-75 mb-1">Середній бал</p>
           <p className="text-5xl font-black tabular-nums leading-none">{average.toFixed(1)}</p>
         </div>
-        <div className="h-12 w-px bg-kpefk-foreground/20" />
+        <div className="h-12 w-px bg-primary-foreground/20" />
         <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-sm">
           <div>
             <p className="text-xl font-bold">{totalSubjects}</p>

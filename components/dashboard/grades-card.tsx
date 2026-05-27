@@ -21,7 +21,7 @@ function GradeBar({ name, average }: { name: string; average: number }) {
             average >= 4.5
               ? "text-green-600 dark:text-green-400"
               : average >= 3.5
-              ? "text-kpefk"
+              ? "text-primary"
               : "text-orange-500"
           )}
         >
@@ -30,7 +30,7 @@ function GradeBar({ name, average }: { name: string; average: number }) {
       </div>
       <div className="h-1.5 rounded-full bg-muted overflow-hidden">
         <motion.div
-          className="h-full rounded-full bg-kpefk"
+          className="h-full rounded-full bg-primary"
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
@@ -46,7 +46,7 @@ export function GradesCard({ summary, delay = 0 }: GradesCardProps) {
     avg >= 4.5
       ? "text-green-600 dark:text-green-400"
       : avg >= 3.5
-      ? "text-kpefk"
+      ? "text-primary"
       : "text-orange-500";
 
   return (

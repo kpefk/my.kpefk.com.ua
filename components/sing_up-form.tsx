@@ -6,7 +6,7 @@ import { useForm, useStore } from "@tanstack/react-form"
 import { toast } from "sonner"
 import { Eye, EyeOff, Info, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { registerMock } from "@/lib/mock-auth"
+import { useAuthStore } from "@/lib/stores/auth.store"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -18,7 +18,8 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
   const [noRnokpp, setNoRnokpp] = useState(false)
   const [noStudentTicket, setNoStudentTicket] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
+
+  const { register, isLoading } = useAuthStore()
 
   const form = useForm({
     defaultValues: {
@@ -34,13 +35,26 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
       consent: false,
     },
     onSubmit: async ({ value }) => {
-      setLoading(true)
-      await new Promise((r) => setTimeout(r, 700))
-      // TODO: replace with POST /api/auth/sign-up
-      registerMock(value.email)
-      setLoading(false)
-      toast.success("Акаунт створено! Ласкаво просимо.")
-      router.push("/dashboard")
+      try {
+        await register({
+          email: value.email,
+          password: value.password,
+          consent: value.consent,
+          rnokpp: value.rnokpp || undefined,
+          no_rnokpp: value.no_rnokpp,
+          serial_ticket: value.serial_ticket || undefined,
+          number_ticket: value.number_ticket || undefined,
+          no_student_ticket: value.no_student_ticket,
+          serial_passport: value.serial_passport || undefined,
+          number_passport: value.number_passport || undefined,
+        })
+
+        toast.success("Акаунт створено! Ласкаво просимо.")
+        router.push("/dashboard")
+
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Помилка реєстрації")
+      }
     },
   })
 
@@ -55,7 +69,7 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
       <FieldGroup className="flex flex-col gap-3">
 
         <div className="flex flex-col items-center gap-1 text-center mb-1">
-          <h1 className="text-xl font-bold">Реєстрація електронного кабінету студента</h1>
+          <h1 className="text-xl font-bold">Реєстрація електронного кабінету для студента</h1>
           <p className="text-xs text-balance text-muted-foreground">
             Заповніть форму нижче, щоб створити свій електронний кабінет студента.
           </p>
@@ -293,22 +307,28 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
 
         <Button
           type="submit"
-          disabled={!consent || loading}
-          className="w-full mt-1 bg-kpefk hover:bg-kpefk/90 text-kpefk-foreground"
+          disabled={!consent || isLoading}
+          className="w-full mt-1 bg-primary hover:bg-primary/90 text-primary-foreground"
         >
-          {loading ? <Loader2 size={16} className="animate-spin" /> : "Зареєструватися"}
+          {isLoading ? <Loader2 size={16} className="animate-spin" /> : "Зареєструватися"}
         </Button>
 
         <FieldDescription className="text-xs text-muted-foreground text-center">
           Виникли проблеми з реєстрацією?{" "}
-          <a href="mailto:my@kpefk.com.ua" className="underline underline-offset-2 hover:text-foreground transition-colors">
+          <a
+            href="mailto:my@kpefk.com.ua"
+            className="underline underline-offset-2 hover:text-foreground transition-colors"
+          >
             my@kpefk.com.ua
           </a>
         </FieldDescription>
 
         <FieldDescription className="text-center">
           Уже маєте обліковий запис?{" "}
-          <Link href="/sign-in" className="underline underline-offset-4 hover:text-foreground transition-colors text-kpefk">
+          <Link
+            href="/sign-in"
+            className="underline underline-offset-4 hover:text-foreground transition-colors text-primary"
+          >
             Увійти
           </Link>
         </FieldDescription>

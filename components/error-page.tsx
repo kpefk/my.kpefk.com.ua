@@ -33,7 +33,7 @@ export default function ErrorPage({ reset, code = 500, message }: ErrorPageProps
     <div className="min-h-svh bg-background flex items-center justify-center p-6">
       <div className="w-full max-w-sm text-center space-y-6">
 
-        <p className="text-[7rem] font-black leading-none tracking-tighter text-kpefk/15 select-none">
+        <p className="text-[7rem] font-black leading-none tracking-tighter text-primary/15 select-none">
           {code}
         </p>
 
@@ -51,7 +51,7 @@ export default function ErrorPage({ reset, code = 500, message }: ErrorPageProps
               Повторити
             </Button>
           )}
-          <Button asChild className="gap-2 bg-kpefk hover:bg-kpefk/90 text-kpefk-foreground">
+          <Button asChild className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground">
             <Link href="/">
               <Home size={14} />
               На головну

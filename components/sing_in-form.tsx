@@ -6,7 +6,7 @@ import { useForm } from "@tanstack/react-form"
 import { toast } from "sonner"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { login } from "@/lib/mock-auth"
+import { useAuthStore } from "@/lib/stores/auth.store"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -16,22 +16,30 @@ import Link from "next/link"
 export function SignInForm({ className, ...props }: React.ComponentProps<"form">) {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
+
+  const { login, isLoading, isTwoFactorRequired, twoFactorMessage } = useAuthStore()
 
   const form = useForm({
-    defaultValues: { email: "", password: "" },
+    defaultValues: { email: "", password: "", code: "" },
     onSubmit: async ({ value }) => {
-      setLoading(true)
-      await new Promise((r) => setTimeout(r, 400))
-      // TODO: replace with POST /api/auth/sign-in
-      const user = login(value.email, value.password)
-      setLoading(false)
-      if (!user) {
-        toast.error("Невірний email або пароль")
-        return
+      try {
+        const result = await login({
+          email: value.email,
+          password: value.password,
+          code: value.code || undefined,
+        })
+
+        if (result === 'two_factor') {
+          toast.info(twoFactorMessage)
+          return
+        }
+
+        toast.success(`Ласкаво просимо!`)
+        router.push('/dashboard')
+
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Помилка входу')
       }
-      toast.success(`Вхід успішний! Ласкаво просимо, ${user.name.split(" ")[0]}`)
-      router.push("/dashboard")
     },
   })
 
@@ -48,12 +56,6 @@ export function SignInForm({ className, ...props }: React.ComponentProps<"form">
           <p className="text-sm text-balance text-muted-foreground">
             Введіть ваш email нижче, щоб увійти в систему
           </p>
-        </div>
-
-        {/* Demo hint */}
-        <div className="rounded-xl bg-kpefk-light px-3.5 py-3 text-xs text-kpefk space-y-0.5">
-          <p className="font-semibold">Тестовий доступ:</p>
-          <p>student@kpefk.com.ua · пароль: <span className="font-mono font-semibold">demo</span></p>
         </div>
 
         <form.Field name="email">
@@ -115,8 +117,40 @@ export function SignInForm({ className, ...props }: React.ComponentProps<"form">
           )}
         </form.Field>
 
-        <Button type="submit" className="w-full bg-kpefk hover:bg-kpefk/90 text-kpefk-foreground" disabled={loading}>
-          {loading ? <Loader2 size={16} className="animate-spin" /> : "Увійти"}
+        {/* ── 2FA поле ──────────────────────────────────────────── */}
+        {isTwoFactorRequired && (
+          <form.Field name="code">
+            {(field) => (
+              <Field>
+                <FieldLabel htmlFor={field.name}>
+                  Код підтвердження <span className="text-destructive">*</span>
+                </FieldLabel>
+                <Input
+                  id={field.name}
+                  type="text"
+                  placeholder="000000"
+                  autoComplete="one-time-code"
+                  inputMode="numeric"
+                  maxLength={6}
+                  className="bg-background tracking-widest text-center"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+              </Field>
+            )}
+          </form.Field>
+        )}
+
+        <Button
+          type="submit"
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+          disabled={isLoading}
+        >
+          {isLoading
+            ? <Loader2 size={16} className="animate-spin" />
+            : isTwoFactorRequired ? "Підтвердити" : "Увійти"
+          }
         </Button>
 
         <FieldSeparator>або продовжити з</FieldSeparator>
@@ -133,7 +167,10 @@ export function SignInForm({ className, ...props }: React.ComponentProps<"form">
 
         <FieldDescription className="text-center text-sm">
           Не маєте облікового запису?{" "}
-          <Link href="/sign-up" className="underline underline-offset-4 hover:text-foreground transition-colors text-kpefk">
+          <Link
+            href="/sign-up"
+            className="underline underline-offset-4 hover:text-foreground transition-colors text-primary"
+          >
             Зареєструватися
           </Link>
         </FieldDescription>

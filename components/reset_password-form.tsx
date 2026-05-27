@@ -107,13 +107,13 @@ export function ResetPasswordForm({ className, ...props }: React.ComponentProps<
           )}
         </form.Field>
 
-        <Button type="submit" className="w-full bg-kpefk hover:bg-kpefk/90 text-kpefk-foreground" disabled={loading}>
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={loading}>
           {loading ? <Loader2 size={16} className="animate-spin" /> : "Скинути пароль"}
         </Button>
 
         <FieldDescription className="text-center text-sm">
           Згадали пароль?{" "}
-          <Link href="/sign-in" className="underline underline-offset-4 hover:text-foreground transition-colors text-kpefk">
+          <Link href="/sign-in" className="underline underline-offset-4 hover:text-foreground transition-colors text-primary">
             Повернутись до входу
           </Link>
         </FieldDescription>

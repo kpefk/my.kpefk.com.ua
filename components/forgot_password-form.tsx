@@ -27,8 +27,8 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
   if (sentTo) {
     return (
       <div className="flex flex-col items-center gap-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-kpefk-light flex items-center justify-center">
-          <MailCheck size={28} className="text-kpefk" />
+        <div className="w-16 h-16 rounded-full bg-primary-light flex items-center justify-center">
+          <MailCheck size={28} className="text-primary" />
         </div>
         <div className="space-y-1.5">
           <h1 className="text-2xl font-bold">Лист надіслано</h1>
@@ -42,7 +42,7 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
         </div>
         <Link
           href="/sign-in"
-          className="text-sm underline underline-offset-4 hover:text-foreground transition-colors text-kpefk"
+          className="text-sm underline underline-offset-4 hover:text-foreground transition-colors text-primary"
         >
           Повернутись до входу
         </Link>
@@ -86,13 +86,13 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
           )}
         </form.Field>
 
-        <Button type="submit" className="w-full bg-kpefk hover:bg-kpefk/90 text-kpefk-foreground" disabled={loading}>
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={loading}>
           {loading ? <Loader2 size={16} className="animate-spin" /> : "Відновити пароль"}
         </Button>
 
         <FieldDescription className="text-center text-sm">
           Згадали пароль?{" "}
-          <Link href="/sign-in" className="underline underline-offset-4 hover:text-foreground transition-colors text-kpefk">
+          <Link href="/sign-in" className="underline underline-offset-4 hover:text-foreground transition-colors text-primary">
             Повернутись до входу
           </Link>
         </FieldDescription>

@@ -4,8 +4,7 @@ import { Moon, Sun, Monitor } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { getSession } from "@/lib/mock-auth";
-import type { User } from "@/lib/types";
+import { useAuthStore } from "@/lib/stores/auth.store";
 
 const THEMES = [
   { value: "light", label: "Світла", icon: Sun },
@@ -16,11 +15,10 @@ const THEMES = [
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
     setMounted(true);
-    setUser(getSession());
   }, []);
 
   return (
@@ -37,15 +35,12 @@ export default function SettingsPage() {
         </h2>
         {user ? (
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-kpefk flex items-center justify-center text-kpefk-foreground text-lg font-bold select-none shrink-0">
-              {user.name.split(" ").slice(0, 2).map((w) => w[0]).join("")}
+            <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-lg font-bold select-none shrink-0">
+              {user.email.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="font-semibold text-foreground truncate">{user.name}</p>
-              <p className="text-sm text-muted-foreground truncate">{user.email}</p>
-              {user.group && (
-                <p className="text-sm text-muted-foreground">Група {user.group}</p>
-              )}
+              <p className="font-semibold text-foreground truncate">{user.email}</p>
+              <p className="text-sm text-muted-foreground truncate">{user.role}</p>
             </div>
           </div>
         ) : (
@@ -66,7 +61,7 @@ export default function SettingsPage() {
               className={cn(
                 "flex flex-col items-center gap-2 p-3 sm:p-4 rounded-xl border transition-all font-medium",
                 mounted && theme === value
-                  ? "border-kpefk bg-kpefk-light text-kpefk"
+                  ? "border-primary bg-primary-light text-primary"
                   : "border-border bg-background text-muted-foreground hover:bg-muted"
               )}
             >

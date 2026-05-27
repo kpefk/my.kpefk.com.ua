@@ -12,7 +12,7 @@ const STATUS_CONFIG: Record<AssignmentStatus, {
   color: string;
   bg: string;
 }> = {
-  pending: { label: "Активне", icon: CircleDot, color: "text-kpefk", bg: "bg-kpefk-light" },
+  pending: { label: "Активне", icon: CircleDot, color: "text-primary", bg: "bg-primary-light" },
   submitted: { label: "Здано", icon: CheckCircle2, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/20" },
   graded: { label: "Оцінено", icon: CheckCircle2, color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-900/20" },
   overdue: { label: "Прострочено", icon: XCircle, color: "text-destructive", bg: "bg-destructive/10" },
@@ -81,7 +81,7 @@ export default function AssignmentsPage() {
             className={cn(
               "shrink-0 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors",
               filter === key
-                ? "bg-kpefk text-kpefk-foreground"
+                ? "bg-primary text-primary-foreground"
                 : "bg-muted text-muted-foreground hover:text-foreground"
             )}
           >

@@ -81,7 +81,7 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
-      <Icon className="w-4 h-4 text-kpefk shrink-0" />
+      <Icon className="w-4 h-4 text-primary shrink-0" />
       <span>{text}</span>
     </div>
   );

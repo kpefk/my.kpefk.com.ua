@@ -82,7 +82,7 @@ export default function AuthLayout({ children }: Readonly<{ children: React.Reac
             Ковельський промислово-економічний фаховий коледж ЛНТУ
           </p>
           <h2 className="text-3xl font-black leading-tight">
-            Цифровий<br />кабінет студента
+            Цифрова платформа<br />для студентів та викладачів
           </h2>
         </div>
       </div>

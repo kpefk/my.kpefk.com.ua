@@ -86,7 +86,7 @@ function AnnouncementItem({
           >
             {item.title}
             {item.isNew && (
-              <span className="ml-2 inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-kpefk-foreground bg-kpefk rounded-full px-1.5 py-0.5 align-middle">
+              <span className="ml-2 inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-primary-foreground bg-primary rounded-full px-1.5 py-0.5 align-middle">
                 Нове
               </span>
             )}

@@ -26,7 +26,7 @@ export function BottomTabBar() {
             href={href}
             className={cn(
               "flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors",
-              active ? "text-kpefk" : "text-muted-foreground"
+              active ? "text-primary" : "text-muted-foreground"
             )}
           >
             <Icon className="w-5 h-5 shrink-0" />

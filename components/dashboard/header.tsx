@@ -1,41 +1,44 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import Image from "next/image";
-import { Bell, LogOut, Menu, Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { logout } from "@/lib/mock-auth";
-import type { User } from "@/lib/types";
+import Link from "next/link"
+import Image from "next/image"
+import { Bell, LogOut, Menu, Moon, Sun } from "lucide-react"
+import { useTheme } from "next-themes"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { useAuthStore } from "@/lib/stores/auth.store"
 
 interface HeaderProps {
-  user: User;
-  onMenuClick: () => void;
+  user: {
+    name: string
+    subtitle: string
+  }
+  onMenuClick: () => void
 }
 
 function UserAvatar({ name }: { name: string }) {
   const initials = name
-    .split(" ")
+    .split(/[\s@]/) // розбиваємо і по пробілу і по @ (для email)
+    .filter(Boolean)
     .slice(0, 2)
     .map((w) => w[0])
     .join("")
-    .toUpperCase();
+    .toUpperCase()
 
   return (
-    <div className="w-8 h-8 rounded-full bg-kpefk flex items-center justify-center text-kpefk-foreground text-xs font-semibold shrink-0 select-none">
+    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold shrink-0 select-none">
       {initials}
     </div>
-  );
+  )
 }
 
 function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return <div className="w-8 h-8" />;
+  useEffect(() => setMounted(true), [])
+  if (!mounted) return <div className="w-8 h-8" />
 
   return (
     <Button
@@ -50,16 +53,21 @@ function ThemeToggle() {
         <Moon className="w-4.5 h-4.5" />
       )}
     </Button>
-  );
+  )
 }
 
 export function Header({ user, onMenuClick }: HeaderProps) {
-  const router = useRouter();
+  const router = useRouter()
+  const { logout } = useAuthStore()
 
-  const handleLogout = () => {
-    logout();
-    router.push("/sign-in");
-  };
+  const handleLogout = async () => {
+    try {
+      await logout()
+      router.push("/sign-in")
+    } catch {
+      router.push("/sign-in")
+    }
+  }
 
   return (
     <header className="h-16 border-b border-border bg-card flex items-center px-4 gap-2 shrink-0">
@@ -74,7 +82,7 @@ export function Header({ user, onMenuClick }: HeaderProps) {
         <Menu className="w-5 h-5" />
       </Button>
 
-      {/* Logo — mobile only (sidebar hidden) */}
+      {/* Logo — mobile only */}
       <Link href="/dashboard" className="flex md:hidden items-center gap-2 mr-2">
         <Image
           src="/logo-dark.png"
@@ -99,16 +107,18 @@ export function Header({ user, onMenuClick }: HeaderProps) {
 
       <Button variant="ghost" size="icon" aria-label="Сповіщення" className="relative">
         <Bell className="w-4.5 h-4.5" />
-        <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-kpefk" />
+        <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
       </Button>
 
       {/* User info — hidden on small mobile */}
       <div className="hidden sm:flex items-center gap-2.5 pl-2 border-l border-border">
         <UserAvatar name={user.name} />
         <div className="hidden lg:block leading-tight">
-          <p className="text-sm font-medium text-foreground">{user.name}</p>
+          <p className="text-sm font-medium text-foreground truncate max-w-[180px]">
+            {user.name}
+          </p>
           <p className="text-xs text-muted-foreground">
-            {user.group ?? user.department ?? user.email}
+            {user.subtitle}
           </p>
         </div>
       </div>
@@ -128,5 +138,5 @@ export function Header({ user, onMenuClick }: HeaderProps) {
         <LogOut className="w-4 h-4" />
       </Button>
     </header>
-  );
+  )
 }
