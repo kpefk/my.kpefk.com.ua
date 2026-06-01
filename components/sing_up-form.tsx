@@ -1,5 +1,6 @@
 "use client"
 
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm, useStore } from "@tanstack/react-form"
@@ -13,13 +14,16 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "./ui/checkbox"
 import Link from "next/link"
 
+
 export function SignUpForm({ className, ...props }: React.ComponentProps<"form">) {
   const router = useRouter()
   const [noRnokpp, setNoRnokpp] = useState(false)
   const [noStudentTicket, setNoStudentTicket] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
+
   const { register, isLoading } = useAuthStore()
+
 
   const form = useForm({
     defaultValues: {
@@ -49,8 +53,10 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
           number_passport: value.number_passport || undefined,
         })
 
+
         toast.success("Акаунт створено! Ласкаво просимо.")
         router.push("/dashboard")
+
 
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Помилка реєстрації")
@@ -58,7 +64,9 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
     },
   })
 
+
   const consent = useStore(form.store, (state) => state.values.consent)
+
 
   return (
     <form
@@ -68,12 +76,14 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
     >
       <FieldGroup className="flex flex-col gap-3">
 
+
         <div className="flex flex-col items-center gap-1 text-center mb-1">
           <h1 className="text-xl font-bold">Реєстрація електронного кабінету для студента</h1>
           <p className="text-xs text-balance text-muted-foreground">
             Заповніть форму нижче, щоб створити свій електронний кабінет студента.
           </p>
         </div>
+
 
         <form.Field name="email">
           {(field) => (
@@ -95,6 +105,7 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
             </Field>
           )}
         </form.Field>
+
 
         <form.Field name="password">
           {(field) => (
@@ -127,6 +138,7 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
           )}
         </form.Field>
 
+
         {!noRnokpp && (
           <form.Field name="rnokpp">
             {(field) => (
@@ -155,6 +167,7 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
           </form.Field>
         )}
 
+
         <form.Field name="no_rnokpp">
           {(field) => (
             <div className="flex items-center gap-2">
@@ -174,7 +187,9 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
           )}
         </form.Field>
 
+
         <FieldSeparator />
+
 
         {!noStudentTicket && (
           <div className="grid grid-cols-2 gap-3">
@@ -220,6 +235,7 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
           </div>
         )}
 
+
         <form.Field name="no_student_ticket">
           {(field) => (
             <div className="flex items-center gap-2">
@@ -239,6 +255,7 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
           )}
         </form.Field>
 
+
         {noStudentTicket && (
           <div className="grid grid-cols-2 gap-3">
             <form.Field name="serial_passport">
@@ -248,7 +265,7 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
                   <Input
                     id={field.name}
                     type="text"
-                    placeholder="АБ (не для ID-картки)"
+                    placeholder="АС (не для ID-картки)"
                     className="bg-background"
                     value={field.state.value}
                     onBlur={field.handleBlur}
@@ -280,7 +297,9 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
           </div>
         )}
 
+
         <FieldSeparator />
+
 
         <form.Field name="consent">
           {(field) => (
@@ -305,6 +324,7 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
           )}
         </form.Field>
 
+
         <Button
           type="submit"
           disabled={!consent || isLoading}
@@ -312,6 +332,7 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
         >
           {isLoading ? <Loader2 size={16} className="animate-spin" /> : "Зареєструватися"}
         </Button>
+
 
         <FieldDescription className="text-xs text-muted-foreground text-center">
           Виникли проблеми з реєстрацією?{" "}
@@ -323,6 +344,7 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
           </a>
         </FieldDescription>
 
+
         <FieldDescription className="text-center">
           Уже маєте обліковий запис?{" "}
           <Link
@@ -332,6 +354,7 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<"form">
             Увійти
           </Link>
         </FieldDescription>
+
 
       </FieldGroup>
     </form>

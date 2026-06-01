@@ -16,14 +16,14 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Головна" },
-  { href: "/dashboard/elective-courses", icon: BookMarked, label: "Вибіркові дисципліни" },
-  { href: "/dashboard/schedule", icon: Calendar, label: "Розклад занять" },
-  { href: "/dashboard/grades", icon: BarChart3, label: "Успішність" },
-  { href: "/dashboard/assignments", icon: ClipboardList, label: "Завдання" },
+  { href: "/elective-courses", icon: BookMarked, label: "Вибіркові дисципліни" },
+  { href: "/schedule", icon: Calendar, label: "Розклад занять" },
+  { href: "/grades", icon: BarChart3, label: "Успішність" },
+  { href: "/assignments", icon: ClipboardList, label: "Завдання" },
 ];
 
 const BOTTOM_ITEMS = [
-  { href: "/dashboard/settings", icon: Settings, label: "Налаштування" },
+  { href: "/settings", icon: Settings, label: "Налаштування" },
 ];
 
 interface SidebarProps {

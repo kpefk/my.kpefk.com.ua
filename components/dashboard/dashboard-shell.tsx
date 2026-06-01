@@ -16,7 +16,7 @@ const ROLE_LABELS: Record<string, string> = {
   ADMINISTRATOR: "Адміністратор",
 }
 
-/** Ролі що мають ім'я + групу в шапці */
+/** Ролі що мають персональні дані в шапці */
 const PERSONAL_ROLES = new Set(["STUDENT", "TEACHER"])
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -29,17 +29,43 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   // ── Дані для шапки залежно від ролі ──────────────────────────────
   const isPersonalRole = PERSONAL_ROLES.has(user.role)
 
-  const headerUser = isPersonalRole
-    ? {
-        // STUDENT / TEACHER — показуємо ім'я та групу (якщо є)
-        name: user.email.split("@")[0],
-        subtitle: ROLE_LABELS[user.role] ?? user.role,
-      }
-    : {
-        // Всі інші ролі — показуємо email та роль
-        name: user.email,
-        subtitle: ROLE_LABELS[user.role] ?? user.role,
-      }
+  let headerUser: { name: string; subtitle: string }
+
+  if (user.role === "STUDENT" && user.student?.personFIO) {
+    // Студент — показуємо ФІО та номер групи
+    headerUser = {
+      name: user.student.personFIO,
+      subtitle: user.student.groupName 
+        ? `Студент ${user.student.groupName}` 
+        : "Студент",
+    }
+  } else if (user.role === "TEACHER" && user.teacher?.firstName) {
+    // Викладач — показуємо ім'я та посаду
+    const teacherName = [
+      user.teacher.lastName,
+      user.teacher.firstName,
+      user.teacher.middleName,
+    ]
+      .filter(Boolean)
+      .join(" ")
+
+    headerUser = {
+      name: teacherName || user.email.split("@")[0],
+      subtitle: user.teacher.positionName || ROLE_LABELS[user.role],
+    }
+  } else if (isPersonalRole) {
+    // Fallback для STUDENT/TEACHER без даних
+    headerUser = {
+      name: user.email.split("@")[0],
+      subtitle: ROLE_LABELS[user.role] ?? user.role,
+    }
+  } else {
+    // Всі інші ролі — показуємо email та роль
+    headerUser = {
+      name: user.email,
+      subtitle: ROLE_LABELS[user.role] ?? user.role,
+    }
+  }
 
   return (
     <div className="flex h-svh overflow-hidden bg-background">

@@ -3,10 +3,19 @@ import { api } from '@/lib/api/axios'
 export interface UserDto {
   id: string
   email: string
-  role: 'STUDENT' | 'STAFF' | 'ADMINISTRATOR'
-  isTwoFactorEnabled: boolean
+  role: 'STUDENT' | 'TEACHER' | 'SCHEDULE_DISPATCHER' | 'HEAD_OF_DEPARTMENT' | 'DEPUTY_DIRECTOR' | 'DIRECTOR' | 'ADMINISTRATOR'
   isFirstLogin: boolean
   isActive: boolean
+  student?: {
+    personFIO: string | null
+    groupName: string | null
+  } | null
+  teacher?: {
+    lastName: string | null
+    firstName: string | null
+    middleName: string | null
+    positionName: string | null
+  } | null
   createdAt: string
   updatedAt: string
 }
