@@ -8,18 +8,44 @@ import {
   BookMarked,
   Calendar,
   ClipboardList,
+  DoorOpen,       // Мій кабінет
+  GraduationCap,  // Список студентів
   LayoutDashboard,
+  Library,        // Навчальні плани
+  School,         // Навчальні кабінети (адмін)
   Settings,
-} from "lucide-react";
+  UserCheck,
+  UserCog,        // Список викладачів
+  Users,          // Моя група / Навчальні групи
+  UserSearch,     // Список користувачів
+} from "lucide-react"
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
+  // Загальне
   { href: "/dashboard", icon: LayoutDashboard, label: "Головна" },
-  { href: "/elective-courses", icon: BookMarked, label: "Вибіркові дисципліни" },
-  { href: "/schedule", icon: Calendar, label: "Розклад занять" },
-  { href: "/grades", icon: BarChart3, label: "Успішність" },
-  { href: "/assignments", icon: ClipboardList, label: "Завдання" },
+
+  // Для студентів
+  { href: "/elective-courses", icon: BookMarked,    label: "Вибіркові дисципліни" },
+  { href: "/schedule",         icon: Calendar,      label: "Розклад занять" },
+  { href: "/grades",           icon: BarChart3,     label: "Успішність" },
+  { href: "/assignments",      icon: ClipboardList, label: "Завдання" },
+
+  // Для викладачів
+  { href: "/attendance", icon: UserCheck, label: "Відвідуваність" },
+  { href: "/my-group",     icon: Users,    label: "Моя група" },        // тільки куратор
+  { href: "/my-classroom", icon: DoorOpen, label: "Мій кабінет" },      // тільки завідувач кабінету
+
+  // Для заступника директора
+  { href: "/academic-plans",  icon: Library, label: "Навчальні плани" },
+  { href: "/academic-groups", icon: Users,   label: "Навчальні групи" },
+
+  // Для адміністраторів
+  { href: "/classrooms", icon: School,       label: "Навчальні кабінети" },
+  { href: "/users",      icon: UserSearch,   label: "Список користувачів" },
+  { href: "/students",   icon: GraduationCap, label: "Список студентів" },
+  { href: "/teachers",   icon: UserCog,      label: "Список викладачів" },
 ];
 
 const BOTTOM_ITEMS = [
@@ -111,37 +137,6 @@ export function Sidebar({ collapsed }: SidebarProps) {
           );
         })}
       </nav>
-
-      {/* Bottom nav */}
-      <div className="py-4 px-2 border-t border-border space-y-0.5">
-        {BOTTOM_ITEMS.map(({ href, icon: Icon, label }) => {
-          const active = pathname === href;
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                active
-                  ? "bg-primary-light text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              <Icon className="shrink-0 w-5 h-5" />
-              <motion.span
-                animate={{
-                  opacity: collapsed ? 0 : 1,
-                  width: collapsed ? 0 : "auto",
-                }}
-                transition={{ duration: 0.15 }}
-                className="whitespace-nowrap overflow-hidden"
-              >
-                {label}
-              </motion.span>
-            </Link>
-          );
-        })}
-      </div>
     </motion.aside>
   );
 }

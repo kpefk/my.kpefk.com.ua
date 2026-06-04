@@ -1,11 +1,9 @@
 import type { Metadata } from 'next'
 import { Fira_Code, Inter } from 'next/font/google'
-import { ThemeProvider } from '@/components/theme-provider'
+import { Providers } from './providers'
 import { Preloader } from '@/components/preloader'
 import { cn } from '@/lib/utils'
 import './globals.css'
-import { Toaster } from 'sonner'
-import { AuthProvider } from '@/components/auth-provider'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
@@ -97,18 +95,10 @@ export default function RootLayout({
 			className={cn('h-full', 'antialiased', firaCode.variable, 'font-sans', inter.variable)}
 		>
 			<body className='flex min-h-full flex-col'>
-				<ThemeProvider
-					attribute='class'
-					defaultTheme='system'
-					enableSystem
-					disableTransitionOnChange
-				>
-					<AuthProvider>
-						<Preloader />
-						{children}
-						<Toaster position='top-right' />
-					</AuthProvider>
-				</ThemeProvider>
+				<Providers>
+					<Preloader />
+					{children}
+				</Providers>
 			</body>
 		</html>
 	)

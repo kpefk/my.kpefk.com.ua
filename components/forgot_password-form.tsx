@@ -4,30 +4,37 @@ import { useState } from "react"
 import { useForm } from "@tanstack/react-form"
 import { Loader2, MailCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { passwordRecoveryService } from "@/lib/services"
 import { Button } from "@/components/ui/button"
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 
 export function ForgotPasswordForm({ className, ...props }: React.ComponentProps<"form">) {
   const [loading, setLoading] = useState(false)
   const [sentTo, setSentTo] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const form = useForm({
     defaultValues: { email: "" },
     onSubmit: async ({ value }) => {
       setLoading(true)
-      // TODO: replace with POST /api/auth/forgot-password
-      await new Promise((r) => setTimeout(r, 700))
-      setLoading(false)
-      setSentTo(value.email)
+      setError(null)
+      try {
+        await passwordRecoveryService.reset({ email: value.email })
+        setSentTo(value.email)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Сталася помилка')
+      } finally {
+        setLoading(false)
+      }
     },
   })
 
   if (sentTo) {
     return (
       <div className="flex flex-col items-center gap-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-primary-light flex items-center justify-center">
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
           <MailCheck size={28} className="text-primary" />
         </div>
         <div className="space-y-1.5">
@@ -80,19 +87,28 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
                 className="bg-background"
                 value={field.state.value}
                 onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
+                onChange={(e) => { field.handleChange(e.target.value); setError(null) }}
               />
             </Field>
           )}
         </form.Field>
 
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={loading}>
+        {error && <FieldError>{error}</FieldError>}
+
+        <Button
+          type="submit"
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+          disabled={loading}
+        >
           {loading ? <Loader2 size={16} className="animate-spin" /> : "Відновити пароль"}
         </Button>
 
         <FieldDescription className="text-center text-sm">
           Згадали пароль?{" "}
-          <Link href="/sign-in" className="underline underline-offset-4 hover:text-foreground transition-colors text-primary">
+          <Link
+            href="/sign-in"
+            className="underline underline-offset-4 hover:text-foreground transition-colors text-primary"
+          >
             Повернутись до входу
           </Link>
         </FieldDescription>

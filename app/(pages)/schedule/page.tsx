@@ -58,7 +58,7 @@ export default function SchedulePage() {
         {DAYS_SHORT.map((label, i) => {
           const weekday = i + 1; // 1=Mon…6=Sat
           const date = weekDates[i];
-          const isToday = isSameDay(date, today);
+          const isToday = date ? isSameDay(date, today) : false;
           const active = activeDay === weekday;
           const hasLessons = (mockWeekSchedule[weekday] ?? []).length > 0;
 
@@ -77,7 +77,7 @@ export default function SchedulePage() {
                 {label}
               </span>
               <span className={cn("tabular-nums", active ? "text-foreground" : "text-muted-foreground/70")}>
-                {date.getDate()}
+                {date?.getDate()}
               </span>
               {hasLessons && (
                 <span className={cn(

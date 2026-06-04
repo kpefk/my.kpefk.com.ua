@@ -1,36 +1,267 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MyKPEFK — Frontend
 
-## Getting Started
+> Client application for the enterprise educational management system of KPEFK LNTU
 
-First, run the development server:
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## Project overview
+
+**MyKPEFK** is the frontend of the information system for Kovel Industrial and Economic Vocational College of Lutsk NTU (KPEFK LNTU). It is built with Next.js 16 (App Router) and React 19.
+
+The application provides authenticated access to college management data: students, teachers, academic groups, classrooms, and administrative user management. It communicates exclusively with the [MyKPEFK backend](../backend.kpefk.com.ua) via a session-cookie–based REST API. Authentication is handled client-side — session checks happen via API on every protected page mount. There is no `middleware.ts`.
+
+---
+
+## Main features
+
+- **Authentication** — sign in, sign up (student), Google OAuth entry point, two-factor authentication (2FA), password recovery
+- **Dashboard** — overview page with summary cards
+- **Students** — searchable/filterable table, detail sheet, manual EDBO sync trigger
+- **Teachers** — searchable/filterable table, detail sheet, manual EDBO sync trigger
+- **Academic groups** — group table, detail sheet, curator assignment, manual EDBO sync trigger
+- **Classrooms** — table, detail/editor sheet, photo management with drag-and-drop reordering, classroom passport PDF
+- **User management** (admin) — create users, view/edit user details, link to student/teacher profiles
+- **Profile** — own profile page with change-password; public profile by ID (`/profile/[id]`)
+- **Entrance** — EDBO admission campaign API integration (API layer in place; UI depth varies by endpoint)
+- **Settings, schedule, grades, assignments** — routes exist; some pages currently use mock data
+
+---
+
+## Tech stack
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| [Next.js](https://nextjs.org/) | 16.2.6 | Framework (App Router) |
+| [React](https://react.dev/) | 19.2.4 | UI library |
+| [TypeScript](https://typescriptlang.org/) | ^5 | Language |
+| [Tailwind CSS](https://tailwindcss.com/) | ^4 | Styling |
+| [shadcn/ui](https://ui.shadcn.com/) + Radix UI | — | Component primitives |
+| [TanStack Query](https://tanstack.com/query) | ^5 | Server state / data fetching |
+| [Zustand](https://zustand.docs.pmnd.rs/) | ^5 | Client state (auth) |
+| [TanStack Form](https://tanstack.com/form) | ^1 | Form state management |
+| [Zod](https://zod.dev/) | ^4 | Schema validation |
+| [Axios](https://axios-http.com/) | ^1 | HTTP client |
+| [sonner](https://sonner.emilkowal.ski/) | ^2 | Toast notifications |
+| [next-themes](https://github.com/pacocoursey/next-themes) | ^0.4 | Dark/light/system theme |
+| [framer-motion](https://www.framer-motion.com/) | ^12 | Animations |
+| [@dnd-kit](https://dndkit.com/) | ^6/^10 | Drag-and-drop (photo reordering) |
+| [lucide-react](https://lucide.dev/) | ^1 | Icons |
+| npm | — | Package manager |
+
+---
+
+## Project structure
+
+```
+app/
+├── (auth)/                 # Route group — public auth pages
+│   ├── sign-in/
+│   ├── sign-up/
+│   ├── forgot-password/
+│   ├── reset-password/
+│   └── layout.tsx          # Minimal auth layout (no sidebar)
+├── (pages)/                # Route group — protected dashboard pages
+│   ├── dashboard/
+│   ├── students/
+│   ├── teachers/
+│   ├── academic-groups/
+│   ├── classrooms/
+│   ├── my-classroom/
+│   ├── profile/
+│   │   └── [id]/           # Dynamic route — profile by user ID
+│   ├── users/
+│   ├── schedule/
+│   ├── grades/
+│   ├── assignments/
+│   ├── settings/
+│   └── layout.tsx          # Client layout — fetches session, redirects if unauthenticated
+├── layout.tsx              # Root layout — renders <Providers>
+├── providers.tsx           # QueryClientProvider + ThemeProvider + Toaster
+├── globals.css
+├── error.tsx
+└── not-found.tsx
+
+features/                   # Feature modules (API hooks + components + types)
+├── auth/
+│   ├── api/                # useMe, useLogin, useLogout, useRegister
+│   ├── components/         # Form components for auth pages
+│   ├── schemas/            # Zod validation schemas
+│   └── types/
+├── students/
+├── teachers/
+├── groups/
+├── classrooms/
+├── admin/
+├── users/
+└── entrance/
+
+components/
+├── ui/                     # shadcn/ui primitives (Button, Dialog, Sheet, Table, etc.)
+└── dashboard/              # Shell layout: Sidebar, Header, DashboardShell, AuthGuard
+
+lib/
+├── api/
+│   ├── client.ts           # Axios instance + typed wrappers + 401 refresh interceptor
+│   └── endpoints.ts        # ENDPOINTS constant — all API path strings
+├── services/               # Imperative service functions (used outside of React hooks)
+├── stores/
+│   └── auth.store.ts       # Zustand auth store (canonical location)
+├── query/
+│   └── client.ts           # QueryClient factory
+├── types/
+│   └── user-role.types.ts
+└── utils.ts                # cn() — clsx + tailwind-merge
+
+store/
+└── auth.store.ts           # Auth store also importable from this legacy path
+
+types/
+├── api.ts                  # ApiError class
+└── index.ts
+
+hooks/
+└── use-require-auth.ts     # Redirect hook used by (pages)/layout.tsx
+
+config/
+└── index.ts
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Prerequisites
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Node.js** >= 20
+- **npm** (project has `package-lock.json`)
+- **MyKPEFK backend** running and accessible — the app cannot authenticate or load data without it
+- `NEXT_PUBLIC_API_URL` environment variable
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Environment setup
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Create `.env.local` in the project root:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```env
+NEXT_PUBLIC_API_URL=http://localhost:4000
+```
 
-## Deploy on Vercel
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_API_URL` | Base URL of the MyKPEFK backend API |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This is the only required frontend environment variable. Authentication is cookie-based — no tokens are stored in the frontend.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Installation and local development
+
+```bash
+# Install dependencies
+npm install
+
+# Start dev server
+npm run dev
+# → http://localhost:3000
+
+# Production build
+npm run build
+
+# Start production server
+npm start
+
+# Lint
+npm run lint
+
+# Type check (no dedicated script — run manually)
+npx tsc --noEmit
+```
+
+The backend must be running at `NEXT_PUBLIC_API_URL` for auth and data to work.
+
+---
+
+## Routing and application structure
+
+The app uses **Next.js 16 App Router** with two route groups:
+
+| Group | Paths | Protection |
+|-------|-------|------------|
+| `(auth)` | `/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password` | Public |
+| `(pages)` | `/dashboard`, `/students`, `/teachers`, and all other pages | Session-guarded |
+
+**Auth protection is client-side only.** There is no `middleware.ts`. The `(pages)/layout.tsx` is a `'use client'` component that calls `useMe()` on mount. If the API returns an error (no session), it calls `router.replace('/sign-in')` and renders a `<Preloader />` in the meantime. A separate `<AuthGuard>` component in `components/dashboard/` provides the same logic for cases where the layout needs to remain a server component.
+
+Dynamic routes: `/profile/[id]` — loads a user profile by ID.
+
+---
+
+## API integration
+
+All HTTP calls go through **`lib/api/client.ts`**:
+
+- Single `axios` instance configured with `baseURL = NEXT_PUBLIC_API_URL` and `withCredentials: true`
+- Typed wrappers: `apiGet<T>`, `apiPost<T>`, `apiPatch<T>`, `apiDelete<T>`
+- **401 refresh interceptor:** on a 401 response, attempts `POST /auth/refresh` once; if that also fails, clears Zustand state and redirects to `/sign-in`
+- **Error normalization:** all errors become `ApiError` instances (`lib/types/api.ts`) with `statusCode`, `message`, and optional `errors` array
+
+**All endpoint strings** are in `lib/api/endpoints.ts` as `ENDPOINTS`. Never hardcode path strings in feature files.
+
+**Data fetching is entirely client-side.** No server actions, no `fetch()` in server components. Features use TanStack Query hooks (`useQuery`, `useMutation`) in `features/{feature}/api/index.ts`.
+
+---
+
+## UI and styling
+
+- **Tailwind CSS v4** — configured via `@tailwindcss/postcss`; no `tailwind.config.js` (config is inlined via `postcss.config.mjs`)
+- **shadcn/ui** components in `components/ui/` are the source of all primitive UI (Button, Input, Dialog, Sheet, Table, Select, Badge, Skeleton, Checkbox, etc.)
+- **`cn()`** (`lib/utils.ts`) — `clsx` + `tailwind-merge` — use for all conditional class composition
+- **Dark/light/system theme** — `next-themes` with `class` attribute strategy; `ThemeProvider` in `providers.tsx`
+- **Toast notifications** — `sonner`; `<Toaster>` rendered in `providers.tsx`; `toast.success()` / `toast.error()` used in mutations
+- **Animations** — `framer-motion`
+- **Icons** — `lucide-react`
+
+---
+
+## Development guidelines
+
+- **Keep API calls in `lib/api/client.ts` wrappers.** Do not add raw `axios.get()` or `fetch()` calls in components or feature files.
+- **Use `ENDPOINTS` for all paths.** Add new endpoints to `lib/api/endpoints.ts`, not inline strings.
+- **Feature co-location.** API hooks, components, and types for a feature go in `features/{feature}/`. Shared UI primitives go in `components/ui/`.
+- **Do not duplicate `components/ui/` primitives.** Use existing shadcn components; add new ones via `shadcn` CLI.
+- **Keep types aligned with backend DTOs.** When the backend changes a response shape, update the corresponding `features/{feature}/types/index.ts`.
+- **Avoid converting server components to client components** unless interactivity or browser APIs are required.
+- **No large refactors without an explicit request.** Make focused, reviewable changes.
+
+---
+
+## Useful commands
+
+```bash
+npm run dev          # Dev server (http://localhost:3000)
+npm run build        # Production build
+npm start            # Start production server
+npm run lint         # ESLint
+npx tsc --noEmit     # Type check
+```
+
+---
+
+## API documentation
+
+The backend Swagger UI is available at `http://localhost:4000/docs` when the backend is running.
+
+---
+
+## Contact
+
+- **Email**: [s.tymchenko@kpefk.com.ua](mailto:s.tymchenko@kpefk.com.ua)
+- **Organization**: [KPEFK LNTU](https://kpefk.com.ua)
+
+---
+
+> This README reflects the current state of the repository. Keep it aligned with the actual codebase — if routing, API structure, or dependencies change, update the relevant sections here.

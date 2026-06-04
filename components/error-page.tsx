@@ -27,7 +27,7 @@ interface ErrorPageProps {
 }
 
 export default function ErrorPage({ reset, code = 500, message }: ErrorPageProps) {
-  const info = ERROR_META[code] ?? ERROR_META[500]
+  const info = ERROR_META[code] ?? ERROR_META[500] ?? { title: 'Помилка', description: 'Щось пішло не так.' }
 
   return (
     <div className="min-h-svh bg-background flex items-center justify-center p-6">

@@ -30,7 +30,6 @@ export function SignInForm({ className, ...props }: React.ComponentProps<"form">
         })
 
         if (result === 'two_factor') {
-          toast.info(twoFactorMessage)
           return
         }
 
@@ -117,7 +116,13 @@ export function SignInForm({ className, ...props }: React.ComponentProps<"form">
           )}
         </form.Field>
 
-        {/* ── 2FA поле ──────────────────────────────────────────── */}
+        {/* ── 2FA повідомлення + поле ───────────────────────────── */}
+        {isTwoFactorRequired && (
+          <div className="rounded-lg bg-primary/10 px-4 py-3 text-sm text-primary leading-snug">
+            {twoFactorMessage}
+          </div>
+        )}
+
         {isTwoFactorRequired && (
           <form.Field name="code">
             {(field) => (

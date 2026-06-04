@@ -4,7 +4,7 @@ import { Moon, Sun, Monitor } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/lib/stores/auth.store";
+import { useAuthStore } from "@/store/auth.store";
 
 const THEMES = [
   { value: "light", label: "Світла", icon: Sun },

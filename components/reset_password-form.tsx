@@ -1,36 +1,125 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useForm } from "@tanstack/react-form"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
-import { toast } from "sonner"
+import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { passwordRecoveryService } from "@/lib/services"
 import { Button } from "@/components/ui/button"
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 
 export function ResetPasswordForm({ className, ...props }: React.ComponentProps<"form">) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const token = searchParams.get('token')
+
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [countdown, setCountdown] = useState(3)
+  const [error, setError] = useState<string | null>(null)
+  const [tokenInvalid, setTokenInvalid] = useState(false)
+
+  useEffect(() => {
+    if (!success) return
+    const nav = setTimeout(() => router.push('/sign-in'), 3000)
+    const interval = setInterval(() => setCountdown((c) => c - 1), 1000)
+    return () => {
+      clearTimeout(nav)
+      clearInterval(interval)
+    }
+  }, [success, router])
 
   const form = useForm({
     defaultValues: { password: "", confirm_password: "" },
     onSubmit: async ({ value }) => {
       if (value.password !== value.confirm_password) {
-        return toast.error("Паролі не співпадають")
+        setError('Паролі не співпадають')
+        return
       }
+      if (!token) return
       setLoading(true)
-      // TODO: replace with POST /api/auth/reset-password
-      await new Promise((r) => setTimeout(r, 700))
-      setLoading(false)
-      toast.success("Пароль успішно змінено!")
-      router.push("/sign-in")
+      setError(null)
+      try {
+        await passwordRecoveryService.new({ password: value.password }, token)
+        setSuccess(true)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Сталася помилка'
+        if (msg.toLowerCase().includes('токен') || msg.toLowerCase().includes('token')) {
+          setTokenInvalid(true)
+        } else {
+          setError(msg)
+        }
+      } finally {
+        setLoading(false)
+      }
     },
   })
+
+  if (!token) {
+    return (
+      <div className="flex flex-col items-center gap-6 text-center">
+        <div className="space-y-1.5">
+          <h1 className="text-2xl font-bold">Невалідне посилання</h1>
+          <p className="text-sm text-muted-foreground text-balance">
+            Посилання для відновлення пароля відсутнє або некоректне.
+          </p>
+        </div>
+        <Link
+          href="/forgot-password"
+          className="text-sm underline underline-offset-4 hover:text-foreground transition-colors text-primary"
+        >
+          Запросити новий лист
+        </Link>
+      </div>
+    )
+  }
+
+  if (tokenInvalid) {
+    return (
+      <div className="flex flex-col items-center gap-6 text-center">
+        <div className="space-y-1.5">
+          <h1 className="text-2xl font-bold">Посилання застаріло</h1>
+          <p className="text-sm text-muted-foreground text-balance">
+            Це посилання для відновлення пароля вже недійсне або прострочене.
+          </p>
+        </div>
+        <Link
+          href="/forgot-password"
+          className="text-sm underline underline-offset-4 hover:text-foreground transition-colors text-primary"
+        >
+          Запросити новий лист
+        </Link>
+      </div>
+    )
+  }
+
+  if (success) {
+    return (
+      <div className="flex flex-col items-center gap-6 text-center">
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+          <ShieldCheck size={28} className="text-primary" />
+        </div>
+        <div className="space-y-1.5">
+          <h1 className="text-2xl font-bold">Пароль змінено</h1>
+          <p className="text-sm text-muted-foreground text-balance">
+            Ваш пароль успішно змінено. Перехід до входу через{" "}
+            <span className="font-medium text-foreground">{countdown}</span> сек.
+          </p>
+        </div>
+        <Link
+          href="/sign-in"
+          className="text-sm underline underline-offset-4 hover:text-foreground transition-colors text-primary"
+        >
+          Перейти до входу зараз
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <form
@@ -47,7 +136,15 @@ export function ResetPasswordForm({ className, ...props }: React.ComponentProps<
           </p>
         </div>
 
-        <form.Field name="password">
+        <form.Field
+          name="password"
+          validators={{
+            onBlur: ({ value }) =>
+              value.length > 0 && value.length < 6
+                ? 'Пароль повинен містити не менше 6 символів'
+                : undefined,
+          }}
+        >
           {(field) => (
             <Field>
               <FieldLabel htmlFor={field.name}>
@@ -59,10 +156,11 @@ export function ResetPasswordForm({ className, ...props }: React.ComponentProps<
                   type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   required
+                  minLength={6}
                   className="bg-background pr-10"
                   value={field.state.value}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  onChange={(e) => { field.handleChange(e.target.value); setError(null) }}
                 />
                 <button
                   type="button"
@@ -73,11 +171,24 @@ export function ResetPasswordForm({ className, ...props }: React.ComponentProps<
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              <FieldError
+                errors={field.state.meta.errors
+                  .filter(Boolean)
+                  .map((e) => ({ message: String(e) }))}
+              />
             </Field>
           )}
         </form.Field>
 
-        <form.Field name="confirm_password">
+        <form.Field
+          name="confirm_password"
+          validators={{
+            onBlur: ({ value }) =>
+              value.length > 0 && value !== form.state.values.password
+                ? 'Паролі не співпадають'
+                : undefined,
+          }}
+        >
           {(field) => (
             <Field>
               <FieldLabel htmlFor={field.name}>
@@ -92,7 +203,7 @@ export function ResetPasswordForm({ className, ...props }: React.ComponentProps<
                   className="bg-background pr-10"
                   value={field.state.value}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  onChange={(e) => { field.handleChange(e.target.value); setError(null) }}
                 />
                 <button
                   type="button"
@@ -103,17 +214,31 @@ export function ResetPasswordForm({ className, ...props }: React.ComponentProps<
                   {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              <FieldError
+                errors={field.state.meta.errors
+                  .filter(Boolean)
+                  .map((e) => ({ message: String(e) }))}
+              />
             </Field>
           )}
         </form.Field>
 
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={loading}>
+        {error && <FieldError>{error}</FieldError>}
+
+        <Button
+          type="submit"
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+          disabled={loading}
+        >
           {loading ? <Loader2 size={16} className="animate-spin" /> : "Скинути пароль"}
         </Button>
 
         <FieldDescription className="text-center text-sm">
           Згадали пароль?{" "}
-          <Link href="/sign-in" className="underline underline-offset-4 hover:text-foreground transition-colors text-primary">
+          <Link
+            href="/sign-in"
+            className="underline underline-offset-4 hover:text-foreground transition-colors text-primary"
+          >
             Повернутись до входу
           </Link>
         </FieldDescription>

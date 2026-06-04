@@ -5,9 +5,8 @@ import Image from "next/image"
 import { Bell, LogOut, Menu, Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { useAuthStore } from "@/lib/stores/auth.store"
+import { useLogout } from "@/features/auth/api"
 
 interface HeaderProps {
   user: {
@@ -57,16 +56,10 @@ function ThemeToggle() {
 }
 
 export function Header({ user, onMenuClick }: HeaderProps) {
-  const router = useRouter()
-  const { logout } = useAuthStore()
+  const logout = useLogout()
 
-  const handleLogout = async () => {
-    try {
-      await logout()
-      router.push("/sign-in")
-    } catch {
-      router.push("/sign-in")
-    }
+  const handleLogout = () => {
+    logout.mutate()
   }
 
   return (

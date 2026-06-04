@@ -1,4 +1,4 @@
-import { ForgotPasswordForm } from "@/components/forgot_password-form"
+import { ForgotPasswordForm } from "@/features/auth/components/forgot-password-form"
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

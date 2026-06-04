@@ -1,10 +1,10 @@
 import { api } from '@/lib/api/axios'
+import { UserRole } from '@/lib/types/user-role.types'
 
 export interface UserDto {
   id: string
   email: string
-  role: 'STUDENT' | 'TEACHER' | 'SCHEDULE_DISPATCHER' | 'HEAD_OF_DEPARTMENT' | 'DEPUTY_DIRECTOR' | 'DIRECTOR' | 'ADMINISTRATOR'
-  isFirstLogin: boolean
+  role: UserRole
   isActive: boolean
   student?: {
     personFIO: string | null

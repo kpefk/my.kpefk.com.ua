@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Calendar, ClipboardList, LayoutDashboard, Settings } from "lucide-react";
+import { BarChart3, Calendar, ClipboardList, LayoutDashboard, Settings, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Головна" },
-  { href: "/dashboard/schedule", icon: Calendar, label: "Розклад" },
-  { href: "/dashboard/grades", icon: BarChart3, label: "Оцінки" },
-  { href: "/dashboard/assignments", icon: ClipboardList, label: "Завдання" },
-  { href: "/dashboard/settings", icon: Settings, label: "Профіль" },
+  { href: "/schedule", icon: Calendar, label: "Розклад" },
+  { href: "/grades", icon: BarChart3, label: "Оцінки" },
+  { href: "/assignments", icon: ClipboardList, label: "Завдання" },
+  { href: "/settings", icon: Settings, label: "Профіль" },
+  { href: "/users", icon: Users, label: "Список користувачів" },
 ];
 
 export function BottomTabBar() {

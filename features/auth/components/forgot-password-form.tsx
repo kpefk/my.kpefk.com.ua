@@ -1,0 +1,124 @@
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+import { useForm } from '@tanstack/react-form'
+import { Loader2, MailCheck } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
+import { passwordRecoveryService } from '@/lib/services'
+
+export function ForgotPasswordForm({ className, ...props }: React.ComponentProps<'form'>) {
+  const [loading, setLoading] = useState(false)
+  const [sentTo, setSentTo] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const form = useForm({
+    defaultValues: { email: '' },
+    onSubmit: async ({ value }) => {
+      setLoading(true)
+      setError(null)
+      try {
+        await passwordRecoveryService.reset({ email: value.email })
+        setSentTo(value.email)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Сталася помилка')
+      } finally {
+        setLoading(false)
+      }
+    },
+  })
+
+  if (sentTo) {
+    return (
+      <div className="flex flex-col items-center gap-6 text-center">
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+          <MailCheck size={28} className="text-primary" />
+        </div>
+        <div className="space-y-1.5">
+          <h1 className="text-2xl font-bold">Лист надіслано</h1>
+          <p className="text-sm text-muted-foreground text-balance">
+            Інструкції з відновлення пароля надіслано на{' '}
+            <span className="font-medium text-foreground">{sentTo}</span>
+          </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            Не знайшли листа? Перевірте папку «Спам».
+          </p>
+        </div>
+        <Link
+          href="/sign-in"
+          className="text-sm underline underline-offset-4 hover:text-foreground transition-colors text-primary"
+        >
+          Повернутись до входу
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <form
+      className={cn('flex flex-col gap-4', className)}
+      onSubmit={(e) => {
+        e.preventDefault()
+        form.handleSubmit()
+      }}
+      {...props}
+    >
+      <FieldGroup className="flex flex-col gap-3">
+        <div className="flex flex-col items-center gap-1 text-center mb-1">
+          <h1 className="text-2xl font-bold">Відновлення пароля</h1>
+          <p className="text-sm text-balance text-muted-foreground">
+            Введіть ваш email, щоб отримати інструкції по відновленню пароля
+          </p>
+        </div>
+
+        <form.Field name="email">
+          {(field) => (
+            <Field>
+              <FieldLabel htmlFor={field.name}>
+                Email <span className="text-destructive">*</span>
+              </FieldLabel>
+              <Input
+                id={field.name}
+                type="email"
+                placeholder="my@kpefk.com.ua"
+                autoComplete="email"
+                required
+                className="bg-background"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(e) => {
+                  field.handleChange(e.target.value)
+                  setError(null)
+                }}
+              />
+            </Field>
+          )}
+        </form.Field>
+
+        {error && <FieldError>{error}</FieldError>}
+
+        <Button
+          type="submit"
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+          disabled={loading}
+        >
+          {loading ? <Loader2 size={16} className="animate-spin" /> : 'Відновити пароль'}
+        </Button>
+
+        <FieldDescription className="text-center text-sm">
+          Згадали пароль?{' '}
+          <Link
+            href="/sign-in"
+            className="underline underline-offset-4 hover:text-foreground transition-colors text-primary"
+          >
+            Повернутись до входу
+          </Link>
+        </FieldDescription>
+      </FieldGroup>
+    </form>
+  )
+}

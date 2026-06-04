@@ -1,20 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { useAuthStore } from "@/lib/stores/auth.store"
+import { useAuthStore } from "@/store/auth.store"
 import { Header } from "@/components/dashboard/header"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { BottomTabBar } from "@/components/dashboard/bottom-tab-bar"
-
-const ROLE_LABELS: Record<string, string> = {
-  STUDENT: "Студент",
-  TEACHER: "Викладач",
-  SCHEDULE_DISPATCHER: "Диспетчер розкладу",
-  HEAD_OF_DEPARTMENT: "Завідувач відділення",
-  DEPUTY_DIRECTOR: "Заступник директора",
-  DIRECTOR: "Директор",
-  ADMINISTRATOR: "Адміністратор",
-}
+import { USER_ROLE_LABELS } from "@/lib/types/user-role.types"
 
 /** Ролі що мають персональні дані в шапці */
 const PERSONAL_ROLES = new Set(["STUDENT", "TEACHER"])
@@ -50,20 +41,20 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       .join(" ")
 
     headerUser = {
-      name: teacherName || user.email.split("@")[0],
-      subtitle: user.teacher.positionName || ROLE_LABELS[user.role],
+      name: teacherName || (user.email.split("@")[0] ?? user.email),
+      subtitle: user.teacher.positionName || USER_ROLE_LABELS[user.role] || user.role,
     }
   } else if (isPersonalRole) {
     // Fallback для STUDENT/TEACHER без даних
     headerUser = {
-      name: user.email.split("@")[0],
-      subtitle: ROLE_LABELS[user.role] ?? user.role,
+      name: user.email.split("@")[0] ?? user.email,
+      subtitle: USER_ROLE_LABELS[user.role] ?? user.role,
     }
   } else {
     // Всі інші ролі — показуємо email та роль
     headerUser = {
       name: user.email,
-      subtitle: ROLE_LABELS[user.role] ?? user.role,
+      subtitle: USER_ROLE_LABELS[user.role] ?? user.role,
     }
   }
 
