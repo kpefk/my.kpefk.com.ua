@@ -29,9 +29,6 @@ import { Button } from "@/components/ui/button"
 import { USER_ROLE_LABELS, USER_ROLE_COLORS } from "@/lib/types/user-role.types"
 
 // ── Types ──────────────────────────────────────────────────────────
-
-type UserRole = ProfileDto["role"]
-
 type PageState =
   | { status: "loading" }
   | { status: "success"; profile: ProfileDto }
@@ -216,7 +213,7 @@ function StudentSections({
             student.isShortTerm
               ? "Скорочена форма"
               : student.isDualForm
-              ? "Подвійна форма"
+              ? "Дуальна форма"
               : student.isSecondHigher
               ? "Другий вищий"
               : null

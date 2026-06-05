@@ -42,10 +42,11 @@ const NAV_ITEMS = [
   { href: "/academic-groups", icon: Users,   label: "Навчальні групи" },
 
   // Для адміністраторів
-  { href: "/classrooms", icon: School,       label: "Навчальні кабінети" },
-  { href: "/users",      icon: UserSearch,   label: "Список користувачів" },
-  { href: "/students",   icon: GraduationCap, label: "Список студентів" },
-  { href: "/teachers",   icon: UserCog,      label: "Список викладачів" },
+  { href: "/classrooms", icon: School, label: "Навчальні кабінети" },
+  { href: "/educational-programs", icon: BookMarked, label: "Список ОПП" },
+  { href: "/users", icon: UserSearch, label: "Список користувачів" },
+  { href: "/students", icon: GraduationCap, label: "Список студентів" },
+  { href: "/teachers", icon: UserCog, label: "Список викладачів" },
 ];
 
 const BOTTOM_ITEMS = [

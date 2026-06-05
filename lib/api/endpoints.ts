@@ -66,5 +66,69 @@ export const ENDPOINTS = {
     SYNC_STUDENTS: '/edbo/sync/students',
     SYNC_STAFF: '/edbo/sync/staff',
     SYNC_ALL: '/edbo/sync/all',
+    SYNC_STUDY_PROGRAMS: '/edbo/sync/study-programs',
+  },
+  CURRICULUM: {
+    // Specialties
+    SPECIALTIES: '/specialties',
+    SPECIALTY: (id: string) => `/specialties/${id}`,
+    SPECIALTY_DEACTIVATE: (id: string) => `/specialties/${id}/deactivate`,
+
+    // Educational programs
+    PROGRAMS: '/educational-programs',
+    PROGRAM: (id: string) => `/educational-programs/${id}`,
+    PROGRAM_DEACTIVATE: (id: string) => `/educational-programs/${id}/deactivate`,
+
+    // Curricula
+    CURRICULA: '/curricula',
+    CURRICULUM: (id: string) => `/curricula/${id}`,
+    CURRICULUM_VERSIONS: (id: string) => `/curricula/${id}/versions`,
+
+    // Curriculum versions
+    VERSION_CREATE: (curriculumId: string) => `/curricula/${curriculumId}/versions`,
+    VERSION: (id: string) => `/curriculum-versions/${id}`,
+    VERSION_PUBLISH: (id: string) => `/curriculum-versions/${id}/publish`,
+    VERSION_DEPRECATE: (id: string) => `/curriculum-versions/${id}/deprecate`,
+    VERSION_DUPLICATE: (sourceId: string, targetCurriculumId: string) =>
+      `/curriculum-versions/${sourceId}/duplicate-into/${targetCurriculumId}`,
+
+    // Sections
+    SECTIONS: (versionId: string) => `/curriculum-versions/${versionId}/sections`,
+    SECTION: (sectionId: string) => `/curriculum-sections/${sectionId}`,
+
+    // Elective blocks
+    ELECTIVE_BLOCKS: (sectionId: string) => `/curriculum-sections/${sectionId}/elective-blocks`,
+
+    // Components
+    COMPONENTS: (sectionId: string) => `/curriculum-sections/${sectionId}/components`,
+    COMPONENT: (componentId: string) => `/curriculum-components/${componentId}`,
+
+    // Component terms
+    COMPONENT_TERMS: (componentId: string) => `/curriculum-components/${componentId}/terms`,
+    COMPONENT_TERM: (termId: string) => `/curriculum-component-terms/${termId}`,
+
+    // Time budget
+    TIME_BUDGET: (versionId: string) => `/curriculum-versions/${versionId}/time-budget`,
+    TIME_BUDGET_ENTRY: (entryId: string) => `/time-budget-entries/${entryId}`,
+
+    // Academic calendar
+    CALENDAR: (versionId: string) => `/curriculum-versions/${versionId}/calendar`,
+    CALENDAR_ENTRY: (entryId: string) => `/academic-calendar-entries/${entryId}`,
+
+    // Group curriculum assignments
+    GROUP_ASSIGNMENTS: '/group-curriculum-assignments',
+    GROUP_ASSIGNMENT_CLOSE: (id: string) => `/group-curriculum-assignments/${id}/close`,
+    GROUP_ACTIVE_ASSIGNMENT: (groupId: string) =>
+      `/group-curriculum-assignments/by-group/${groupId}/active`,
+    GROUP_ASSIGNMENT_HISTORY: (groupId: string) =>
+      `/group-curriculum-assignments/by-group/${groupId}/history`,
+
+    // Working curricula
+    WORKING_CURRICULA: '/working-curricula',
+    WORKING_CURRICULUM: (id: string) => `/working-curricula/${id}`,
+    WORKING_CURRICULUM_APPROVE: (id: string) => `/working-curricula/${id}/approve`,
+    WORKING_CURRICULUM_TERMS: (id: string) => `/working-curricula/${id}/component-terms`,
+    WORKING_ASSIGNMENTS: '/working-curricula/group-assignments',
+    GROUP_WORKING_CURRICULA: (groupId: string) => `/working-curricula/by-group/${groupId}`,
   },
 } as const

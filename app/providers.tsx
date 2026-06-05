@@ -22,8 +22,16 @@ function makeQueryClient() {
       },
       mutations: {
         onError: (error) => {
-          const message = error instanceof ApiError ? error.message : 'Невідома помилка'
-          toast.error(message)
+          if (!(error instanceof ApiError)) {
+            toast.error('Невідома помилка')
+            return
+          }
+          // NestJS returns "Cannot METHOD /path" for unregistered routes (404).
+          // Never expose raw routing diagnostics to the user.
+          const isRoutingError = /^Cannot (GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS) /.test(
+            error.message,
+          )
+          toast.error(isRoutingError ? 'Помилка сервера. Спробуйте ще раз або зверніться до адміністратора.' : error.message)
         },
       },
     },
