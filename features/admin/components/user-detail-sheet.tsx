@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { KeyRound, Loader2, ShieldCheck, ShieldOff, UserCheck, UserX } from 'lucide-react'
+import { KeyRound, Loader2, Mail, ShieldOff, Smartphone, UserCheck, UserX } from 'lucide-react'
 
 import {
   AlertDialog,
@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/sheet'
 import { USER_ROLE_COLORS, USER_ROLE_LABELS, type UserRole } from '@/lib/types/user-role.types'
 
+import { useAdminReset2FA } from '@/features/auth/api/security'
 import { useDeactivateUser, useResetPassword, useUpdateUser } from '../api'
 import { formatDate, getUserDisplayName, type AdminUserDto } from '../types'
 
@@ -67,6 +68,7 @@ export function UserDetailSheet({ user, open, onClose }: UserDetailSheetProps) {
   const updateUser = useUpdateUser()
   const deactivateUser = useDeactivateUser()
   const resetPassword = useResetPassword()
+  const reset2FA = useAdminReset2FA()
 
   if (!user) return null
 
@@ -131,9 +133,11 @@ export function UserDetailSheet({ user, open, onClose }: UserDetailSheetProps) {
             <InfoField
               label="2FA"
               value={
-                user.isTwoFactorEnabled
-                  ? <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><ShieldCheck size={14} /> Увімкнено</span>
-                  : <span className="flex items-center gap-1 text-muted-foreground"><ShieldOff size={14} /> Вимкнено</span>
+                user.twoFactorMethod === 'TOTP'
+                  ? <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><Smartphone size={14} /> Authenticator</span>
+                  : user.twoFactorMethod === 'EMAIL'
+                    ? <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400"><Mail size={14} /> Пошта</span>
+                    : <span className="flex items-center gap-1 text-muted-foreground"><ShieldOff size={14} /> Вимкнено</span>
               }
             />
             <InfoField label="Перший вхід" value={user.isFirstLogin ? 'Ще не входив' : 'Вхід виконано'} />
@@ -185,7 +189,34 @@ export function UserDetailSheet({ user, open, onClose }: UserDetailSheetProps) {
 
         </div>
 
-        <SheetFooter className="px-6 py-4 border-t border-border flex flex-col sm:flex-row gap-2">
+        <SheetFooter className="px-6 py-4 border-t border-border flex flex-col sm:flex-row gap-2 flex-wrap">
+          {/* Скинути 2FA */}
+          {user.twoFactorMethod !== 'NONE' && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 flex-1" disabled={reset2FA.isPending}>
+                  {reset2FA.isPending ? <Loader2 size={14} className="animate-spin" /> : <ShieldOff size={14} />}
+                  Скинути 2FA
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Скинути двофакторну автентифікацію?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    2FA для <span className="font-medium text-foreground">{user.email}</span> буде вимкнено.
+                    Користувач зможе повторно налаштувати її самостійно.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Скасувати</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => reset2FA.mutate(user.id)}>
+                    Скинути
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+
           {/* Скинути пароль */}
           <AlertDialog>
             <AlertDialogTrigger asChild>

@@ -1,4 +1,7 @@
+import type { TwoFactorMethod } from '@/lib/services/auth.service'
 import type { UserRole } from '@/lib/types/user-role.types'
+
+export type { TwoFactorMethod }
 
 export interface AdminUserDto {
   id: string
@@ -7,6 +10,7 @@ export interface AdminUserDto {
   isActive: boolean
   isFirstLogin: boolean
   isTwoFactorEnabled: boolean
+  twoFactorMethod: TwoFactorMethod
   createdAt: string
   updatedAt: string
   student?: {

@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { Checkbox } from '@/components/ui/checkbox'
+import { cn } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -23,19 +23,13 @@ import {
 } from '@/components/ui/select'
 
 import {
-  CONTROL_FORM_LABELS,
-  type ControlForm,
+  TERM_CONTROL_FORM_LABELS,
   type CurriculumComponentTermDto,
+  type TermControlForm,
 } from '../types'
 
-const CONTROL_FORM_OPTIONS: ControlForm[] = [
-  'EXAM',
-  'TEST',
-  'DIFFERENTIATED_TEST',
-  'COURSE_WORK',
-  'COURSE_PROJECT',
-  'NONE',
-]
+const TERM_CONTROL_FORM_OPTIONS: Array<TermControlForm> = ['EXAM', 'CREDIT', 'GRADED_CREDIT']
+const NONE_SENTINEL = 'NONE' // placeholder — Radix Select forbids value=""
 
 interface ComponentTermDialogProps {
   open: boolean
@@ -48,9 +42,9 @@ interface ComponentTermDialogProps {
   allocatedHours: number
   initialData?: CurriculumComponentTermDto
   onSubmit: (data: {
-    ects: number
     hours: number
-    controlForm: ControlForm
+    hoursPerWeek?: number
+    controlForm?: TermControlForm
     hasCourseWork: boolean
     hasCourseProject: boolean
   }) => void
@@ -70,10 +64,12 @@ export function ComponentTermDialog({
   onDelete,
   isPending,
 }: ComponentTermDialogProps) {
-  const [ects, setEcts] = useState(initialData ? String(Number(initialData.ects)) : '')
   const [hours, setHours] = useState(initialData ? String(initialData.hours) : '')
-  const [controlForm, setControlForm] = useState<ControlForm>(
-    initialData?.controlForm ?? 'NONE',
+  const [hoursPerWeek, setHoursPerWeek] = useState(
+    initialData?.hoursPerWeek != null ? String(initialData.hoursPerWeek) : '',
+  )
+  const [controlForm, setControlForm] = useState<TermControlForm | typeof NONE_SENTINEL>(
+    initialData?.controlForm ?? NONE_SENTINEL,
   )
   const [hasCourseWork, setHasCourseWork] = useState(initialData?.hasCourseWork ?? false)
   const [hasCourseProject, setHasCourseProject] = useState(
@@ -82,33 +78,35 @@ export function ComponentTermDialog({
 
   useEffect(() => {
     if (open) {
-      setEcts(initialData ? String(Number(initialData.ects)) : '')
       setHours(initialData ? String(initialData.hours) : '')
-      setControlForm(initialData?.controlForm ?? 'NONE')
+      setHoursPerWeek(initialData?.hoursPerWeek != null ? String(initialData.hoursPerWeek) : '')
+      setControlForm(initialData?.controlForm ?? NONE_SENTINEL)
       setHasCourseWork(initialData?.hasCourseWork ?? false)
       setHasCourseProject(initialData?.hasCourseProject ?? false)
     }
   }, [open, initialData])
 
-  const ectsVal = parseFloat(ects)
   const hoursVal = parseInt(hours, 10)
+  const hpwVal = parseInt(hoursPerWeek, 10)
   const remainingHours = totalHours - allocatedHours
   const hoursExceeded = Number.isFinite(hoursVal) && hoursVal > remainingHours
-  const canSubmit =
-    Number.isFinite(ectsVal) &&
-    ectsVal >= 0 &&
-    Number.isFinite(hoursVal) &&
-    hoursVal >= 0 &&
-    !hoursExceeded
+
+  const canSubmit = Number.isFinite(hoursVal) && hoursVal >= 0 && !hoursExceeded
 
   const handleSubmit = () => {
     if (!canSubmit) return
-    onSubmit({ ects: ectsVal, hours: hoursVal, controlForm, hasCourseWork, hasCourseProject })
+    onSubmit({
+      hours: hoursVal,
+      hoursPerWeek: Number.isFinite(hpwVal) && hpwVal >= 1 ? hpwVal : undefined,
+      controlForm: controlForm !== NONE_SENTINEL ? (controlForm as TermControlForm) : undefined,
+      hasCourseWork,
+      hasCourseProject,
+    })
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[420px]">
+      <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>
             {initialData ? 'Редагувати' : 'Додати'} семестр {semesterNumber}
@@ -117,36 +115,36 @@ export function ComponentTermDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-4 py-2">
-          {/* Hours budget */}
-          <div className="rounded-md border border-border bg-muted/40 px-3 py-2 flex items-center justify-between text-xs gap-4">
-            <span className="text-muted-foreground">Годин загалом:</span>
-            <span className="font-mono font-medium">{totalHours}</span>
-            <span className="text-muted-foreground">Розподілено:</span>
-            <span className="font-mono font-medium">{allocatedHours}</span>
-            <span className="text-muted-foreground">Залишок:</span>
-            <span className={cn('font-mono font-semibold', remainingHours < 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400')}>
-              {remainingHours}
+          {/* Hours budget bar */}
+          <div className="rounded-md border border-border bg-muted/40 px-3 py-2 flex items-center justify-between text-xs gap-3 flex-wrap">
+            <span className="text-muted-foreground">
+              Годин загалом:{' '}
+              <span className="font-mono font-medium text-foreground">{totalHours}</span>
+            </span>
+            <span className="text-muted-foreground">
+              Розподілено:{' '}
+              <span className="font-mono font-medium text-foreground">{allocatedHours}</span>
+            </span>
+            <span className="text-muted-foreground">
+              Залишок:{' '}
+              <span
+                className={cn(
+                  'font-mono font-semibold',
+                  remainingHours < 0
+                    ? 'text-destructive'
+                    : 'text-emerald-600 dark:text-emerald-400',
+                )}
+              >
+                {remainingHours}
+              </span>
             </span>
           </div>
 
+          {/* Годин / Год.тижд. */}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="term-ects">ЄКТС *</Label>
-              <Input
-                id="term-ects"
-                type="number"
-                min={0}
-                step={0.5}
-                max={30}
-                value={ects}
-                onChange={(e) => setEcts(e.target.value)}
-                placeholder="4.5"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
               <Label htmlFor="term-hours" className={cn(hoursExceeded && 'text-destructive')}>
-                Годин * {hoursExceeded && `(макс. ${remainingHours})`}
+                Годин *{hoursExceeded && ` (макс. ${remainingHours})`}
               </Label>
               <Input
                 id="term-hours"
@@ -156,7 +154,9 @@ export function ComponentTermDialog({
                 value={hours}
                 onChange={(e) => setHours(e.target.value)}
                 placeholder="135"
-                className={cn(hoursExceeded && 'border-destructive focus-visible:ring-destructive')}
+                className={cn(
+                  hoursExceeded && 'border-destructive focus-visible:ring-destructive',
+                )}
               />
               {hoursExceeded && (
                 <p className="text-xs text-destructive">
@@ -164,27 +164,47 @@ export function ComponentTermDialog({
                 </p>
               )}
             </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="term-hpw">Год./тижд.</Label>
+              <Input
+                id="term-hpw"
+                type="number"
+                min={1}
+                value={hoursPerWeek}
+                onChange={(e) => setHoursPerWeek(e.target.value)}
+                placeholder="2"
+              />
+              <p className="text-xs text-muted-foreground leading-tight">
+                Знаменник у &#34;34/<strong>2</strong>&#34;
+              </p>
+            </div>
           </div>
 
+          {/* Control form */}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="control-form">Форма контролю</Label>
             <Select
               value={controlForm}
-              onValueChange={(v) => setControlForm(v as ControlForm)}
+              onValueChange={(v) => setControlForm(v as TermControlForm | typeof NONE_SENTINEL)}
             >
               <SelectTrigger id="control-form">
-                <SelectValue />
+                <SelectValue placeholder="(не вказано)" />
               </SelectTrigger>
               <SelectContent>
-                {CONTROL_FORM_OPTIONS.map((form) => (
+                <SelectItem value={NONE_SENTINEL}>
+                  <span className="text-muted-foreground">(не вказано)</span>
+                </SelectItem>
+                {TERM_CONTROL_FORM_OPTIONS.map((form) => (
                   <SelectItem key={form} value={form}>
-                    {CONTROL_FORM_LABELS[form]}
+                    {TERM_CONTROL_FORM_LABELS[form]}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
+          {/* KP / KP checkboxes */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <Checkbox
@@ -203,7 +223,7 @@ export function ComponentTermDialog({
                 onCheckedChange={(v) => setHasCourseProject(!!v)}
               />
               <Label htmlFor="has-cp" className="cursor-pointer font-normal">
-                Курсовий проект (КП)
+                Курсовий проєкт (КП)
               </Label>
             </div>
           </div>

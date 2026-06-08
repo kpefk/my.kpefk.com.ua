@@ -22,6 +22,8 @@ import type {
   GroupCurriculumAssignmentDto,
   PracticeType,
   SpecialtyDto,
+  TermControlForm,
+  WorkingComponentTermDto,
   WorkingCurriculumDetailDto,
   WorkingCurriculumSummaryDto,
 } from '../types'
@@ -347,6 +349,44 @@ export function useWorkingCurriculum(id: string | null) {
   })
 }
 
+export function useInitializeWorkingCurriculumTerms() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (workingCurriculumId: string) =>
+      apiPost<WorkingCurriculumDetailDto>(
+        ENDPOINTS.CURRICULUM.WORKING_CURRICULUM_INITIALIZE_TERMS(workingCurriculumId),
+      ),
+    onSuccess: (data, id) => {
+      // Instant update: populate cache with the response so the table appears immediately
+      // without waiting for a refetch.
+      queryClient.setQueryData(curriculumKeys.workingCurriculum(id), data)
+      // Also refresh the list so isEmpty is up to date
+      queryClient.invalidateQueries({ queryKey: curriculumKeys.workingCurricula })
+      toast.success('Розподіл годин ініціалізовано')
+    },
+    onError: (error: unknown) => {
+      const msg = error instanceof ApiError ? error.message : 'Помилка ініціалізації'
+      toast.error(msg)
+    },
+  })
+}
+
+export function useDeleteWorkingCurriculum() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => apiDelete(ENDPOINTS.CURRICULUM.WORKING_CURRICULUM(id)),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: curriculumKeys.workingCurricula })
+      queryClient.removeQueries({ queryKey: curriculumKeys.workingCurriculum(id) })
+      toast.success('Робочий план видалено')
+    },
+    onError: (error: unknown) => {
+      const msg = error instanceof ApiError ? error.message : 'Помилка видалення'
+      toast.error(msg)
+    },
+  })
+}
+
 export function useCreateWorkingCurriculum() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -363,6 +403,52 @@ export function useCreateWorkingCurriculum() {
     },
     onError: (error: unknown) => {
       const msg = error instanceof ApiError ? error.message : 'Помилка створення'
+      toast.error(msg)
+    },
+  })
+}
+
+export function useUpdateWorkingComponentTerm() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      termId,
+      data,
+    }: {
+      termId: string
+      workingCurriculumId: string
+      data: {
+        lectureHours: number
+        practicalHours: number
+        labHours: number
+        seminarHours: number
+        independentHours: number
+        consultationHours: number
+        weeklyLectureHours: number | null
+        weeklyPracticalHours: number | null
+      }
+    }) =>
+      apiPatch<WorkingComponentTermDto>(
+        ENDPOINTS.CURRICULUM.WORKING_COMPONENT_TERM(termId),
+        data,
+      ),
+    onSuccess: (updatedTerm, { workingCurriculumId }) => {
+      // Merge the saved term into the detail cache — no extra network round-trip.
+      queryClient.setQueryData<WorkingCurriculumDetailDto | undefined>(
+        curriculumKeys.workingCurriculum(workingCurriculumId),
+        (old) => {
+          if (!old) return old
+          return {
+            ...old,
+            componentTerms: old.componentTerms.map((t) =>
+              t.id === updatedTerm.id ? updatedTerm : t,
+            ),
+          }
+        },
+      )
+    },
+    onError: (error: unknown) => {
+      const msg = error instanceof ApiError ? error.message : 'Помилка збереження розподілу'
       toast.error(msg)
     },
   })
@@ -458,7 +544,7 @@ export function useCreateComponent() {
       data: {
         name: string
         componentType: ComponentType
-        code?: string
+        code?: string | null
         totalEcts: number
         totalHours: number
         orderIndex: number
@@ -489,7 +575,7 @@ export function useUpdateComponent() {
       data: Partial<{
         name: string
         componentType: ComponentType
-        code: string
+        code: string | null
         totalEcts: number
         totalHours: number
         isMandatory: boolean
@@ -534,9 +620,10 @@ export function useCreateComponentTerm() {
       versionId: string
       data: {
         semesterNumber: number
-        ects: number
+        ects?: number
         hours: number
-        controlForm: ControlForm
+        hoursPerWeek?: number
+        controlForm?: TermControlForm
         hasCourseWork?: boolean
         hasCourseProject?: boolean
       }
@@ -564,7 +651,8 @@ export function useUpdateComponentTerm() {
       data: Partial<{
         ects: number
         hours: number
-        controlForm: ControlForm
+        hoursPerWeek: number
+        controlForm: TermControlForm
         hasCourseWork: boolean
         hasCourseProject: boolean
       }>
@@ -591,6 +679,52 @@ export function useDeleteComponentTerm() {
     },
     onError: (error: unknown) => {
       const msg = error instanceof ApiError ? error.message : 'Помилка видалення'
+      toast.error(msg)
+    },
+  })
+}
+
+// ─── Component display projections ────────────────────────────────────────────
+
+export function useCreateProjection() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      versionId,
+      data,
+    }: {
+      versionId: string
+      data: {
+        componentId: string
+        targetSectionId: string
+        displayOrder?: number
+        displayMarker?: string
+        displayNote?: string
+      }
+    }) =>
+      apiPost(ENDPOINTS.CURRICULUM.COMPONENT_PROJECTIONS(versionId), data),
+    onSuccess: (_data, { versionId }) => {
+      queryClient.invalidateQueries({ queryKey: curriculumKeys.version(versionId) })
+      toast.success('Компонент відображатиметься в обраному розділі')
+    },
+    onError: (error: unknown) => {
+      const msg = error instanceof ApiError ? error.message : 'Помилка додавання проекції'
+      toast.error(msg)
+    },
+  })
+}
+
+export function useDeleteProjection() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ projectionId }: { projectionId: string; versionId: string }) =>
+      apiDelete(ENDPOINTS.CURRICULUM.COMPONENT_PROJECTION(projectionId)),
+    onSuccess: (_data, { versionId }) => {
+      queryClient.invalidateQueries({ queryKey: curriculumKeys.version(versionId) })
+      toast.success('Відображення компонента в розділі видалено')
+    },
+    onError: (error: unknown) => {
+      const msg = error instanceof ApiError ? error.message : 'Помилка видалення проекції'
       toast.error(msg)
     },
   })

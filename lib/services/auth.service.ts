@@ -1,11 +1,15 @@
 import { api } from '@/lib/api/axios'
 import { UserRole } from '@/lib/types/user-role.types'
 
+export type TwoFactorMethod = 'NONE' | 'EMAIL' | 'TOTP'
+
 export interface UserDto {
   id: string
   email: string
   role: UserRole
   isActive: boolean
+  isTwoFactorEnabled: boolean
+  twoFactorMethod: TwoFactorMethod
   student?: {
     personFIO: string | null
     groupName: string | null

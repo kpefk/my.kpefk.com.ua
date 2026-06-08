@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { AlertCircle, Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox'
 import {
   Dialog,
   DialogContent,
@@ -14,13 +15,6 @@ import {
 } from '@/components/ui/dialog'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useGroups } from '@/features/groups/api'
 import { DEFAULT_GROUP_FILTERS } from '@/features/groups/types'
 import { cn } from '@/lib/utils'
@@ -47,7 +41,15 @@ export function AssignGroupDialog({
   const [reason, setReason] = useState('')
 
   const { data: groups = [], isLoading: groupsLoading } = useGroups(DEFAULT_GROUP_FILTERS)
+
+  // Assignments for THIS version — to show already-bound groups and block re-selection
+  const { data: versionAssignments = [] } = useGroupAssignments({ versionId })
+  const activeVersionAssignments = versionAssignments.filter((a) => a.isActive)
+  const assignedGroupIds = new Set(activeVersionAssignments.map((a) => a.groupId))
+
+  // All active assignments across all versions — to detect cross-version conflict
   const { data: activeAssignments = [] } = useGroupAssignments({ activeOnly: true })
+
   const createAssignment = useCreateGroupAssignment()
 
   useEffect(() => {
@@ -64,6 +66,17 @@ export function AssignGroupDialog({
         (a) => a.groupId === groupId && a.versionId !== versionId,
       )
     : null
+
+  // Build combobox options: each group shows name + specialty; already-assigned are disabled
+  const groupOptions: ComboboxOption[] = groups.map((g) => ({
+    id: g.id,
+    label: g.name,
+    sublabel:
+      g.fullSpecialityName ??
+      g.qualificationGroupName ??
+      (g.course != null ? `${g.course} курс` : undefined),
+    disabled: assignedGroupIds.has(g.id),
+  }))
 
   const isValid = groupId !== '' && effectiveFrom !== ''
 
@@ -95,29 +108,41 @@ export function AssignGroupDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
+          {/* Already assigned groups for this version */}
+          {activeVersionAssignments.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-xs font-medium text-muted-foreground">
+                Вже прив&#39;язані до цієї версії ({activeVersionAssignments.length}):
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {activeVersionAssignments.map((a) => (
+                  <span
+                    key={a.id}
+                    className="inline-flex items-center rounded-md border border-border bg-muted/50 px-2 py-0.5 text-xs font-mono"
+                  >
+                    {a.group.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Group selector */}
           <Field>
             <FieldLabel htmlFor="ag-group">
               Академічна група <span className="text-destructive">*</span>
             </FieldLabel>
-            <Select value={groupId} onValueChange={setGroupId} disabled={groupsLoading}>
-              <SelectTrigger id="ag-group" className="bg-background">
-                <SelectValue placeholder={groupsLoading ? 'Завантаження...' : 'Оберіть групу...'} />
-              </SelectTrigger>
-              <SelectContent>
-                {groups.map((g) => (
-                  <SelectItem key={g.id} value={g.id}>
-                    <span className="font-mono">{g.name}</span>
-                    {g.course && (
-                      <span className="text-muted-foreground text-xs ml-2">· {g.course} курс</span>
-                    )}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              options={groupOptions}
+              value={groupId}
+              onChange={setGroupId}
+              loading={groupsLoading}
+              placeholder="Пошук за назвою або спеціальністю…"
+              emptyText="Групу не знайдено"
+            />
           </Field>
 
-          {/* Existing assignment warning */}
+          {/* Cross-version conflict warning */}
           {existingAssignment && (
             <div
               className={cn(

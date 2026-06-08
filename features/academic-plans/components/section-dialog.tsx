@@ -15,7 +15,9 @@ import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
@@ -25,6 +27,24 @@ import {
   type CurriculumSectionDto,
   type CurriculumSectionType,
 } from '../types'
+
+// ─── Grouped section type options ────────────────────────────────────────────
+
+const SECONDARY_EDUCATION_TYPES: CurriculumSectionType[] = [
+  'SECONDARY_EDUCATION',
+  'BASIC_OPP',
+  'ELECTIVE_OPP',
+  'OPTIONAL_COURSES',
+]
+
+const PROFESSIONAL_TRAINING_TYPES: CurriculumSectionType[] = [
+  'GENERAL_COMPETENCY',
+  'PROFESSIONAL_COMPETENCY',
+  'ELECTIVE',
+  'PRACTICE',
+  'ATTESTATION',
+  'CFP',
+]
 
 interface SectionDialogProps {
   open: boolean
@@ -90,13 +110,22 @@ export function SectionDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.entries(SECTION_TYPE_LABELS) as [CurriculumSectionType, string][]).map(
-                  ([value, label]) => (
+                <SelectGroup>
+                  <SelectLabel>Профільна середня освіта</SelectLabel>
+                  {SECONDARY_EDUCATION_TYPES.map((value) => (
                     <SelectItem key={value} value={value}>
-                      {label}
+                      {SECTION_TYPE_LABELS[value]}
                     </SelectItem>
-                  ),
-                )}
+                  ))}
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel>Фахова підготовка</SelectLabel>
+                  {PROFESSIONAL_TRAINING_TYPES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {SECTION_TYPE_LABELS[value]}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
           </div>

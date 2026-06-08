@@ -11,6 +11,8 @@ export interface ComboboxOption {
   id: string
   label: string
   sublabel?: string
+  /** Опція відображається, але не може бути обрана */
+  disabled?: boolean
 }
 
 export interface ComboboxProps {
@@ -152,9 +154,13 @@ export function Combobox({
                 <button
                   key={opt.id}
                   type="button"
+                  disabled={opt.disabled}
                   onClick={() => handleSelect(opt.id)}
                   className={cn(
-                    'w-full flex items-start gap-2 px-3 py-2 text-sm text-left hover:bg-accent hover:text-accent-foreground',
+                    'w-full flex items-start gap-2 px-3 py-2 text-sm text-left',
+                    opt.disabled
+                      ? 'opacity-40 cursor-not-allowed'
+                      : 'hover:bg-accent hover:text-accent-foreground',
                     value === opt.id && 'bg-accent/50',
                   )}
                 >

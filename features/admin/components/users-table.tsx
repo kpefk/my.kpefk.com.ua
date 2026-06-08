@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, ShieldCheck, Users } from 'lucide-react'
+import { ChevronDown, ChevronUp, Mail, Smartphone, Users } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -146,10 +146,17 @@ export function UsersTable({ users, isLoading, onRowClick }: UsersTableProps) {
                 )}
               </TableCell>
               <TableCell className="text-center">
-                {user.isTwoFactorEnabled
-                  ? <ShieldCheck size={16} className="inline text-emerald-500" />
-                  : <span className="text-muted-foreground/40 text-xs">—</span>
-                }
+                {user.twoFactorMethod === 'TOTP' ? (
+                  <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 hover:bg-emerald-100 gap-1 text-[10px] px-1.5">
+                    <Smartphone size={10} /> Auth
+                  </Badge>
+                ) : user.twoFactorMethod === 'EMAIL' ? (
+                  <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 hover:bg-blue-100 gap-1 text-[10px] px-1.5">
+                    <Mail size={10} /> Email
+                  </Badge>
+                ) : (
+                  <span className="text-muted-foreground/40 text-xs">—</span>
+                )}
               </TableCell>
               <TableCell className="text-muted-foreground text-sm hidden lg:table-cell">
                 {new Intl.DateTimeFormat('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(user.createdAt))}

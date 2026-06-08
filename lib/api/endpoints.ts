@@ -10,6 +10,15 @@ export const ENDPOINTS = {
     RESET: '/auth/password-recovery/reset',
     NEW: (token: string) => `/auth/password-recovery/new/${token}`,
   },
+  TWO_FA: {
+    STATUS: '/auth/2fa/status',
+    TOTP_SETUP: '/auth/2fa/totp/setup',
+    TOTP_VERIFY_SETUP: '/auth/2fa/totp/verify-setup',
+    TOTP_DISABLE: '/auth/2fa/totp/disable',
+    EMAIL_ENABLE: '/auth/2fa/email/enable',
+    EMAIL_DISABLE: '/auth/2fa/email/disable',
+    ADMIN_RESET: (userId: string) => `/users/${userId}/2fa/reset`,
+  },
   USERS: {
     PROFILE: '/users/profile',
     BY_ID: (id: string) => `/users/by-id/${id}`,
@@ -107,6 +116,12 @@ export const ENDPOINTS = {
     COMPONENT_TERMS: (componentId: string) => `/curriculum-components/${componentId}/terms`,
     COMPONENT_TERM: (termId: string) => `/curriculum-component-terms/${termId}`,
 
+    // Component display projections
+    COMPONENT_PROJECTIONS: (versionId: string) =>
+      `/curriculum-versions/${versionId}/component-projections`,
+    COMPONENT_PROJECTION: (projectionId: string) =>
+      `/curriculum-component-projections/${projectionId}`,
+
     // Time budget
     TIME_BUDGET: (versionId: string) => `/curriculum-versions/${versionId}/time-budget`,
     TIME_BUDGET_ENTRY: (entryId: string) => `/time-budget-entries/${entryId}`,
@@ -128,6 +143,8 @@ export const ENDPOINTS = {
     WORKING_CURRICULUM: (id: string) => `/working-curricula/${id}`,
     WORKING_CURRICULUM_APPROVE: (id: string) => `/working-curricula/${id}/approve`,
     WORKING_CURRICULUM_TERMS: (id: string) => `/working-curricula/${id}/component-terms`,
+    WORKING_CURRICULUM_INITIALIZE_TERMS: (id: string) => `/working-curricula/${id}/initialize-terms`,
+    WORKING_COMPONENT_TERM: (termId: string) => `/working-component-terms/${termId}`,
     WORKING_ASSIGNMENTS: '/working-curricula/group-assignments',
     GROUP_WORKING_CURRICULA: (groupId: string) => `/working-curricula/by-group/${groupId}`,
   },

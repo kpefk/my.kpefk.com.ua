@@ -3,12 +3,18 @@
 export type EducationForm = 'FULL_TIME' | 'PART_TIME' | 'DUAL'
 export type AdmissionBasis = 'AFTER_9TH_GRADE' | 'AFTER_11TH_GRADE'
 export type CurriculumSectionType =
+  // Профільна середня освіта
   | 'SECONDARY_EDUCATION'
+  | 'BASIC_OPP'
+  | 'ELECTIVE_OPP'
+  | 'OPTIONAL_COURSES'
+  // Фахова підготовка
   | 'GENERAL_COMPETENCY'
   | 'PROFESSIONAL_COMPETENCY'
   | 'ELECTIVE'
   | 'PRACTICE'
   | 'ATTESTATION'
+  | 'CFP'
 export type ComponentType =
   | 'DISCIPLINE'
   | 'PRACTICE'
@@ -18,6 +24,15 @@ export type ComponentType =
   | 'QUALIFICATION_WORK_DEFENSE'
   | 'QUALIFICATION_EXAM'
   | 'STATE_EXAM'
+
+export type CurriculumComponentKind =
+  | 'REGULAR'
+  | 'PRACTICE'
+  | 'ATTESTATION'
+  | 'ELECTIVE_GROUP'
+
+export type TermControlForm = 'EXAM' | 'CREDIT' | 'GRADED_CREDIT'
+
 export type ControlForm =
   | 'EXAM'
   | 'TEST'
@@ -157,6 +172,7 @@ export interface CurriculumComponentDto {
   code: string | null
   name: string
   componentType: ComponentType
+  componentKind: CurriculumComponentKind
   totalEcts: string
   totalHours: number
   orderIndex: number
@@ -165,7 +181,35 @@ export interface CurriculumComponentDto {
   courseWorkCount: number
   courseProjectCount: number
   notes: string | null
+  // Hours breakdown
+  auditoryHours: number | null
+  lectureHours: number | null
+  practicalHours: number | null
+  seminarHours: number | null
+  labHours: number | null
+  selfStudyHours: number | null
+  otherHours: number | null
+  znoPreparationHours: number | null
+  // (control form is now per-term, see CurriculumComponentTermDto)
+  // Elective group
+  groupCode: string | null
+  parentComponentId: string | null
   terms: CurriculumComponentTermDto[]
+  // ── Display projection fields ──────────────────────────────────────────────
+  // Присутні на всіх компонентах. Для канонічних: isProjected = false,
+  // countsInTotals = true. Для проекційних рядків: isProjected = true,
+  // countsInTotals = false — вони не враховуються в підсумках розділу/плану.
+  isProjected: boolean
+  /** UUID основного розділу компонента (для projected rows = sectionId) */
+  sourceSectionId: string | null
+  /** false для display-only рядків; true для канонічних компонентів */
+  countsInTotals: boolean
+  /** Маркер поруч з назвою, наприклад «*» */
+  displayMarker: string | null
+  /** Пояснювальна нотатка */
+  displayNote: string | null
+  /** UUID рядка CurriculumComponentDisplayInSection (null для канонічних) */
+  projectionId: string | null
 }
 
 export interface CurriculumComponentTermDto {
@@ -174,7 +218,8 @@ export interface CurriculumComponentTermDto {
   semesterNumber: number
   ects: string
   hours: number
-  controlForm: ControlForm
+  hoursPerWeek: number | null
+  controlForm: TermControlForm | null
   hasCourseWork: boolean
   hasCourseProject: boolean
 }
@@ -251,6 +296,11 @@ export interface WorkingCurriculumSummaryDto {
   isApproved: boolean
   approvedAt: string | null
   notes: string | null
+  /**
+   * true якщо розподіл годин не внесено (сума всіх погодинних полів = 0).
+   * Обчислюється на backend; може бути відсутнє у старих відповідях.
+   */
+  isEmpty?: boolean
   _count: { groupAssignments: number; componentTerms: number }
   createdAt: string
   updatedAt: string
@@ -330,6 +380,19 @@ export const CONTROL_FORM_SHORT: Record<ControlForm, string> = {
   NONE: '—',
 }
 
+export const TERM_CONTROL_FORM_LABELS: Record<TermControlForm, string> = {
+  EXAM: 'Екзамен',
+  CREDIT: 'Залік',
+  GRADED_CREDIT: 'Диференційований залік',
+}
+
+export const COMPONENT_KIND_LABELS: Record<CurriculumComponentKind, string> = {
+  REGULAR: 'Звичайна дисципліна',
+  PRACTICE: 'Практика',
+  ATTESTATION: 'Атестація / ЗНО',
+  ELECTIVE_GROUP: 'Вибіркова група',
+}
+
 export const COMPONENT_TYPE_LABELS: Record<ComponentType, string> = {
   DISCIPLINE: 'Дисципліна',
   PRACTICE: 'Практика',
@@ -342,12 +405,31 @@ export const COMPONENT_TYPE_LABELS: Record<ComponentType, string> = {
 }
 
 export const SECTION_TYPE_LABELS: Record<CurriculumSectionType, string> = {
+  // Профільна середня освіта
   SECONDARY_EDUCATION: 'Загальна середня освіта',
+  BASIC_OPP: 'Базові компоненти ОПП',
+  ELECTIVE_OPP: 'Вибірково-обов\'язкові компоненти ОПП',
+  OPTIONAL_COURSES: 'Факультативні курси',
+  // Фахова підготовка
   GENERAL_COMPETENCY: 'Загальні компетентності',
   PROFESSIONAL_COMPETENCY: 'Фахові компетентності',
   ELECTIVE: 'Вибіркова частина',
   PRACTICE: 'Практична підготовка',
   ATTESTATION: 'Атестація',
+  CFP: 'ЦФП',
+}
+
+/** Section types that belong to the general secondary education block.
+ *  Components in these sections do not carry ECTS credits. */
+export const SECONDARY_EDUCATION_SECTION_TYPES = new Set<CurriculumSectionType>([
+  'SECONDARY_EDUCATION',
+  'BASIC_OPP',
+  'ELECTIVE_OPP',
+  'OPTIONAL_COURSES',
+])
+
+export function isSecondaryEducationSection(sectionType: CurriculumSectionType): boolean {
+  return SECONDARY_EDUCATION_SECTION_TYPES.has(sectionType)
 }
 
 export const PRACTICE_TYPE_LABELS: Record<PracticeType, string> = {

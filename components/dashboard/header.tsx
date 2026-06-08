@@ -2,10 +2,18 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Bell, LogOut, Menu, Moon, Sun } from "lucide-react"
+import { Bell, LogOut, Menu, Moon, Settings, Sun, User } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useLogout } from "@/features/auth/api"
 
 interface HeaderProps {
@@ -103,23 +111,53 @@ export function Header({ user, onMenuClick }: HeaderProps) {
         <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
       </Button>
 
-      {/* User info — hidden on small mobile */}
-      <div className="hidden sm:flex items-center gap-2.5 pl-2 border-l border-border">
-        <UserAvatar name={user.name} />
-        <div className="hidden lg:block leading-tight">
-          <p className="text-sm font-medium text-foreground truncate max-w-[180px]">
-            {user.name}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {user.subtitle}
-          </p>
-        </div>
-      </div>
+      {/* User dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="flex items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+            aria-label="Меню користувача"
+          >
+            {/* User info — hidden on small mobile */}
+            <div className="hidden sm:flex items-center gap-2.5 pl-2 border-l border-border">
+              <UserAvatar name={user.name} />
+              <div className="hidden lg:block leading-tight">
+                <p className="text-sm font-medium text-foreground truncate max-w-[180px]">
+                  {user.name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {user.subtitle}
+                </p>
+              </div>
+            </div>
 
-      {/* Avatar only on very small screens */}
-      <div className="flex sm:hidden">
-        <UserAvatar name={user.name} />
-      </div>
+            {/* Avatar only on very small screens */}
+            <div className="flex sm:hidden">
+              <UserAvatar name={user.name} />
+            </div>
+          </button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuLabel className="font-normal">
+            <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
+            <p className="text-xs text-muted-foreground">{user.subtitle}</p>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/profile" className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Відкрити профіль
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/profile/settings" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Перейти до налаштувань
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <Button
         variant="ghost"
