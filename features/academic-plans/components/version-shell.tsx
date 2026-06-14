@@ -80,11 +80,6 @@ export function VersionShell({
                   Чернетка
                 </Badge>
               )}
-              <span>{version.approvalOrderNumber}</span>
-              <span>·</span>
-              <span>{formatDate(version.approvalDate)}</span>
-              <span>·</span>
-              <span className="text-muted-foreground/70">{version.approvedBy}</span>
             </div>
           </div>
         ) : null}

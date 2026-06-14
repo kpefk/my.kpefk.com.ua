@@ -164,7 +164,7 @@ export function SignInForm({ className, ...props }: React.ComponentProps<"form">
           variant="outline"
           type="button"
           className="w-full"
-          onClick={() => toast.info("Google OAuth — скоро буде доступно")}
+          onClick={() => { window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/oauth/connect/google` }}
         >
           <Image src="/google.svg" alt="Google" width={16} height={16} />
           Увійти через Google

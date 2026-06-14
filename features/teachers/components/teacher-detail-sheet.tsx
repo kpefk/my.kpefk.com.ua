@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Sheet,
   SheetContent,
@@ -11,6 +12,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 
+import { useQualificationUpgrades } from '../api'
 import { formatDate, formatStage, getFullName, type TeacherDto } from '../types'
 
 // ── Reusable primitives ───────────────────────────────────────────
@@ -44,6 +46,10 @@ interface TeacherDetailSheetProps {
 }
 
 export function TeacherDetailSheet({ teacher, open, onClose }: TeacherDetailSheetProps) {
+  const { data: upgrades, isLoading: upgradesLoading } = useQualificationUpgrades(
+    open ? (teacher?.id ?? null) : null,
+  )
+
   if (!teacher) return null
 
   const fullName = getFullName(teacher)
@@ -114,14 +120,40 @@ export function TeacherDetailSheet({ teacher, open, onClose }: TeacherDetailShee
             )}
           </InfoSection>
 
-          {teacher.coursesInfo && (
-            <div className="space-y-2">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Підвищення кваліфікації
-              </h3>
-              <p className="text-sm whitespace-pre-wrap">{teacher.coursesInfo}</p>
-            </div>
-          )}
+          <div className="space-y-2">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Підвищення кваліфікації
+            </h3>
+            {upgradesLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-14 w-full" />
+                <Skeleton className="h-14 w-full" />
+              </div>
+            ) : upgrades && upgrades.length > 0 ? (
+              <div className="space-y-2">
+                {upgrades.map((u) => (
+                  <div
+                    key={u.id}
+                    className="rounded-md border border-border bg-muted/30 px-3 py-2 text-sm space-y-0.5"
+                  >
+                    <p className="font-medium leading-snug">{u.courseName}</p>
+                    {u.organizationName && (
+                      <p className="text-muted-foreground text-xs">{u.organizationName}</p>
+                    )}
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-1">
+                      <span>{formatDate(u.endDate)}</span>
+                      <span>{u.hours} год</span>
+                      {u.certificateNumber && <span>№ {u.certificateNumber}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : teacher.coursesInfo ? (
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{teacher.coursesInfo}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Відомостей немає</p>
+            )}
+          </div>
 
           <InfoSection title="Службові дані">
             <InfoField

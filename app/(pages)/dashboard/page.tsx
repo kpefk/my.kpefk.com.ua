@@ -3,6 +3,7 @@ import { WelcomeBanner } from "@/components/dashboard/welcome-banner";
 import { NextClassCard } from "@/components/dashboard/next-class-card";
 import { GradesCard } from "@/components/dashboard/grades-card";
 import { AnnouncementsFeed } from "@/components/dashboard/announcements-feed";
+import { MyTeacherLoadCard } from "@/features/teacher-load/components/my-teacher-load-card";
 import {
   mockTodaySchedule,
   mockGradesSummary,
@@ -38,7 +39,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Right column */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-5">
+          {/* Викладачам — їхнє педагогічне навантаження (для інших ролей рендериться null) */}
+          <MyTeacherLoadCard />
           <GradesCard summary={mockGradesSummary} delay={0.15} />
         </div>
       </div>

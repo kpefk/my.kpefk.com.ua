@@ -34,6 +34,8 @@ import {
   useDeleteComponentTerm,
   useCreateProjection,
   useDeleteProjection,
+  useCreateElectiveBlock,
+  useDeleteElectiveBlock,
 } from '../api'
 import {
   SECTION_TYPE_LABELS,
@@ -43,6 +45,7 @@ import {
   type CurriculumSectionDto,
   type CurriculumSectionType,
   type CurriculumVersionDetailDto,
+  type ElectiveBlockDto,
   type TimeBudgetEntryDto,
 } from '../types'
 import { ComponentDialog } from './component-dialog'
@@ -110,6 +113,9 @@ type DialogState =
   // Projection management
   | { kind: 'addProjection'; component: CurriculumComponentDto }
   | { kind: 'deleteProjection'; projectionId: string; componentName: string }
+  // Elective block management
+  | { kind: 'addElectiveBlock'; section: CurriculumSectionDto }
+  | { kind: 'deleteElectiveBlock'; block: ElectiveBlockDto; sectionName: string }
   | null
 
 // ─── Column definitions ───────────────────────────────────────────────────────
@@ -536,6 +542,8 @@ interface SectionBlockProps {
   onAddProjection: (c: CurriculumComponentDto) => void
   onAddTerm: (c: CurriculumComponentDto, s: number) => void
   onEditTerm: (t: CurriculumComponentTermDto, c: CurriculumComponentDto) => void
+  onAddElectiveBlock: () => void
+  onDeleteElectiveBlock: (b: ElectiveBlockDto) => void
 }
 
 function SectionBlock({
@@ -554,6 +562,8 @@ function SectionBlock({
   onAddProjection,
   onAddTerm,
   onEditTerm,
+  onAddElectiveBlock,
+  onDeleteElectiveBlock,
 }: SectionBlockProps) {
   const [expanded, setExpanded] = useState(true)
   const isSecEdu = isSecondaryEducationSection(section.sectionType)
@@ -631,6 +641,45 @@ function SectionBlock({
           </div>
         </td>
       </tr>
+
+      {/* Elective blocks sub-section */}
+      {expanded && (section.electiveBlocks.length > 0 || canEdit) && (
+        <tr>
+          <td colSpan={totalCols} className="px-3 py-1 bg-amber-50/40 dark:bg-amber-950/20 border-b border-amber-200/40 dark:border-amber-800/30">
+            <div className="flex flex-col gap-1">
+              {section.electiveBlocks.map((block) => (
+                <div key={block.id} className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-muted-foreground">
+                    <span className="font-medium text-foreground">Блок ВК:</span>{' '}
+                    {block.name}
+                    <span className="ml-2 opacity-60">
+                      С{block.semesterNumber} · вибір {block.minSelections}–{block.maxSelections}
+                    </span>
+                  </span>
+                  {canEdit && (
+                    <button
+                      onClick={() => onDeleteElectiveBlock(block)}
+                      title="Видалити блок ВК"
+                      className="p-0.5 rounded text-red-500 hover:bg-red-100/60 dark:hover:bg-red-950/30 shrink-0"
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {canEdit && (
+                <button
+                  onClick={onAddElectiveBlock}
+                  className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 transition-colors w-fit"
+                >
+                  <Plus size={11} />
+                  Додати блок ВК
+                </button>
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
 
       {/* Component rows */}
       {expanded &&
@@ -899,6 +948,132 @@ function TimeBudgetBlock({ entries }: { entries: TimeBudgetEntryDto[] }) {
   )
 }
 
+// ─── Elective Block Dialog ────────────────────────────────────────────────────
+
+interface ElectiveBlockDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  sectionName: string
+  defaultOrderIndex: number
+  isPending: boolean
+  onSubmit: (data: {
+    name: string
+    semesterNumber: number
+    minSelections: number
+    maxSelections: number
+    orderIndex: number
+  }) => void
+}
+
+function ElectiveBlockDialog({
+  open,
+  onOpenChange,
+  sectionName,
+  defaultOrderIndex,
+  isPending,
+  onSubmit,
+}: ElectiveBlockDialogProps) {
+  const [name, setName] = useState('')
+  const [semesterNumber, setSemesterNumber] = useState('1')
+  const [minSelections, setMinSelections] = useState('1')
+  const [maxSelections, setMaxSelections] = useState('1')
+
+  useEffect(() => {
+    if (open) {
+      setName('')
+      setSemesterNumber('1')
+      setMinSelections('1')
+      setMaxSelections('1')
+    }
+  }, [open])
+
+  const semVal = parseInt(semesterNumber, 10)
+  const minVal = parseInt(minSelections, 10)
+  const maxVal = parseInt(maxSelections, 10)
+  const canSubmit =
+    name.trim().length >= 2 &&
+    Number.isFinite(semVal) && semVal >= 1 &&
+    Number.isFinite(minVal) && minVal >= 1 &&
+    Number.isFinite(maxVal) && maxVal >= minVal
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[440px]">
+        <DialogHeader>
+          <DialogTitle>Новий блок ВК — {sectionName}</DialogTitle>
+          <DialogDescription>
+            Блок об'єднує дисципліни-варіанти вибіркового компонента. Студент обирає задану кількість дисциплін з блоку.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-3 py-2">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium">Назва блоку *</label>
+            <input
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Блок ВК-1"
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">Семестр *</label>
+              <input
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                type="number"
+                min={1}
+                max={12}
+                value={semesterNumber}
+                onChange={(e) => setSemesterNumber(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">Мін. вибір</label>
+              <input
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                type="number"
+                min={1}
+                value={minSelections}
+                onChange={(e) => setMinSelections(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">Макс. вибір</label>
+              <input
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                type="number"
+                min={1}
+                value={maxSelections}
+                onChange={(e) => setMaxSelections(e.target.value)}
+              />
+            </div>
+          </div>
+          {Number.isFinite(maxVal) && Number.isFinite(minVal) && maxVal < minVal && (
+            <p className="text-xs text-destructive">Макс. вибір не може бути менше за мін.</p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Скасувати</Button>
+          <Button
+            disabled={isPending || !canSubmit}
+            onClick={() =>
+              onSubmit({
+                name: name.trim(),
+                semesterNumber: semVal,
+                minSelections: minVal,
+                maxSelections: maxVal,
+                orderIndex: defaultOrderIndex,
+              })
+            }
+          >
+            Додати блок
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ─── Add Projection Dialog ────────────────────────────────────────────────────
 
 interface AddProjectionDialogProps {
@@ -1041,12 +1216,15 @@ export function CurriculumStructureTable({
   const deleteTerm = useDeleteComponentTerm()
   const createProjection = useCreateProjection()
   const deleteProjection = useDeleteProjection()
+  const createElectiveBlock = useCreateElectiveBlock()
+  const deleteElectiveBlock = useDeleteElectiveBlock()
 
   const anyPending =
     createSection.isPending || updateSection.isPending || deleteSection.isPending ||
     createComponent.isPending || updateComponent.isPending || deleteComponent.isPending ||
     createTerm.isPending || updateTerm.isPending || deleteTerm.isPending ||
-    createProjection.isPending || deleteProjection.isPending
+    createProjection.isPending || deleteProjection.isPending ||
+    createElectiveBlock.isPending || deleteElectiveBlock.isPending
 
   const nextSectionOrder = sections.length
   const nextCompOrder = (s: CurriculumSectionDto) => s.components.length
@@ -1227,6 +1405,8 @@ export function CurriculumStructureTable({
                 onAddProjection={(c) => setDialog({ kind: 'addProjection', component: c })}
                 onAddTerm={(c, s) => setDialog({ kind: 'addTerm', component: c, semesterNumber: s })}
                 onEditTerm={(t, c) => setDialog({ kind: 'editTerm', term: t, component: c })}
+                onAddElectiveBlock={() => setDialog({ kind: 'addElectiveBlock', section })}
+                onDeleteElectiveBlock={(b) => setDialog({ kind: 'deleteElectiveBlock', block: b, sectionName: section.name })}
               />
             ))}
           </tbody>
@@ -1307,6 +1487,11 @@ export function CurriculumStructureTable({
               : undefined
           }
           initialData={dialog.kind === 'editComponent' ? dialog.component : undefined}
+          electiveBlocks={
+            dialog.kind === 'addComponent'
+              ? dialog.section.electiveBlocks
+              : sections.find((s) => s.id === (dialog.kind === 'editComponent' ? dialog.component.sectionId : ''))?.electiveBlocks ?? []
+          }
           isPending={createComponent.isPending || updateComponent.isPending}
           onSubmit={(data) => {
             if (dialog.kind === 'editComponent') {
@@ -1458,6 +1643,53 @@ export function CurriculumStructureTable({
           />
         )
       })()}
+
+      {/* ── Add elective block dialog ─────────────────────────────────────────── */}
+      {dialog?.kind === 'addElectiveBlock' && (
+        <ElectiveBlockDialog
+          open
+          onOpenChange={(o) => !o && closeDialog()}
+          sectionName={dialog.section.name}
+          defaultOrderIndex={dialog.section.electiveBlocks.length}
+          isPending={createElectiveBlock.isPending}
+          onSubmit={(data) => {
+            createElectiveBlock.mutate(
+              { sectionId: dialog.section.id, versionId, data },
+              { onSuccess: closeDialog },
+            )
+          }}
+        />
+      )}
+
+      {/* ── Delete elective block dialog ──────────────────────────────────────── */}
+      <Dialog
+        open={dialog?.kind === 'deleteElectiveBlock'}
+        onOpenChange={(o) => !o && closeDialog()}
+      >
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Видалити блок ВК?</DialogTitle>
+            <DialogDescription>
+              {dialog?.kind === 'deleteElectiveBlock' && (
+                <>Блок «{dialog.block.name}» у розділі «{dialog.sectionName}» буде видалено. Переконайтесь, що жоден компонент не прив'язаний до цього блоку.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDialog}>Скасувати</Button>
+            <Button
+              variant="destructive"
+              disabled={anyPending}
+              onClick={() => {
+                if (dialog?.kind !== 'deleteElectiveBlock') return
+                deleteElectiveBlock.mutate({ id: dialog.block.id, versionId }, { onSuccess: closeDialog })
+              }}
+            >
+              Видалити
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Delete projection dialog ──────────────────────────────────────────── */}
       <Dialog

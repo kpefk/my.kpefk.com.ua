@@ -1,6 +1,7 @@
 import axios, { AxiosRequestConfig } from 'axios'
 
 import { ApiError } from '@/types/api'
+import { getRecaptchaToken, isRecaptchaProtected } from '@/lib/recaptcha'
 import { ENDPOINTS } from './endpoints'
 
 let isRefreshing = false
@@ -23,9 +24,15 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Request interceptor — structure ready for future token injection
+// Request interceptor — attaches a reCAPTCHA token to protected auth endpoints.
 api.interceptors.request.use(
-  (config) => config,
+  async (config) => {
+    if (isRecaptchaProtected(config.url)) {
+      const token = await getRecaptchaToken('auth')
+      if (token) config.headers.set('recaptcha', token)
+    }
+    return config
+  },
   (error) => Promise.reject(error)
 )
 
@@ -89,6 +96,9 @@ export const apiPatch = <T>(
   data?: unknown,
   config?: Parameters<typeof api.patch>[2]
 ) => api.patch<T>(url, data, config).then((r) => r.data)
+
+export const apiPut = <T>(url: string, data?: unknown, config?: Parameters<typeof api.put>[2]) =>
+  api.put<T>(url, data, config).then((r) => r.data)
 
 export const apiDelete = <T>(url: string, config?: Parameters<typeof api.delete>[1]) =>
   api.delete<T>(url, config).then((r) => r.data)

@@ -1,11 +1,17 @@
-import { ResetPasswordForm } from "@/features/auth/components/reset-password-form"
-import { Metadata } from "next";
+import { Suspense } from 'react'
+import type { Metadata } from 'next'
+
+import { ResetPasswordForm } from '@/features/auth/components/reset-password-form'
 
 export const metadata: Metadata = {
-  title: "Новий пароль",
+  title: 'Новий пароль',
   robots: { index: false },
-};
+}
 
 export default function ResetPasswordPage() {
-  return <ResetPasswordForm />
+  return (
+    <Suspense>
+      <ResetPasswordForm />
+    </Suspense>
+  )
 }

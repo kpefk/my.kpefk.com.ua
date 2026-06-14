@@ -10,8 +10,19 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useAuthStore } from '@/store/auth.store'
+import { useAdminParentInfo, useAdminUpdateParentInfo } from '@/features/group-leader/api'
+import { ParentInfoForm } from '@/features/group-leader/components/ParentInfoForm'
 
 import { formatDate, isStudentActive, type StudentDto } from '../types'
+
+const PARENT_INFO_ROLES = [
+  'HEAD_OF_DEPARTMENT',
+  'DEPUTY_DIRECTOR',
+  'DIRECTOR',
+  'ADMINISTRATOR',
+] as const
 
 function InfoSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -39,11 +50,128 @@ interface StudentDetailSheetProps {
   onClose: () => void
 }
 
+function PersonalTab({ student }: { student: StudentDto }) {
+  const active = isStudentActive(student)
+  const educationFlags = [
+    student.isDualForm && 'Дуальна форма',
+    student.isSecondHigher && 'Другий вищий',
+    student.isShortTerm && 'Скорочений термін',
+  ]
+    .filter(Boolean)
+    .join(', ') || null
+
+  return (
+    <div className="space-y-6">
+      <InfoSection title="Персональні дані">
+        <InfoField label="Дата народження" value={formatDate(student.birthday)} />
+        <InfoField label="Стать" value={student.personSexName} />
+        <InfoField label="ЄДЕБО ID (освіта)" value={student.educationId} />
+        <InfoField label="ЄДЕБО ID (особа)" value={student.personId} />
+      </InfoSection>
+
+      <InfoSection title="Навчання">
+        <InfoField label="Структурний підрозділ" value={student.facultyName} span />
+        <InfoField label="Спеціальність" value={student.fullSpecialityName} span />
+        <InfoField label="Освітня програма" value={student.studyProgramName} span />
+        <InfoField label="Кваліфікація" value={student.professionInfo} span />
+        <InfoField label="Освітній ступінь" value={student.qualificationGroupName} />
+        <InfoField label="Форма навчання" value={student.educationFormName} />
+        <InfoField label="Курс" value={student.courseName} />
+        <InfoField label="Група" value={student.groupName} />
+        <InfoField label="Початок навчання" value={formatDate(student.educationDateBegin)} />
+        <InfoField label="Кінець навчання" value={formatDate(student.educationDateEnd)} />
+        {student.licenseYear && (
+          <InfoField label="Рік набору" value={student.licenseYear} />
+        )}
+        {educationFlags && (
+          <InfoField label="Особливості" value={educationFlags} span />
+        )}
+      </InfoSection>
+
+      {(!active || student.expelEducationTypeName || student.academicLeaveTypeName) && (
+        <InfoSection title="Статус навчання">
+          {student.expelEducationTypeName && (
+            <InfoField label="Причина відрахування" value={student.expelEducationTypeName} span />
+          )}
+          {student.academicLeaveTypeName && (
+            <InfoField label="Академічна відпустка" value={student.academicLeaveTypeName} span />
+          )}
+        </InfoSection>
+      )}
+
+      {(student.foreignTypeName || student.budgetTransferCategoryName) && (
+        <InfoSection title="Додаткові відомості">
+          {student.foreignTypeName && (
+            <InfoField label="Категорія іноземця" value={student.foreignTypeName} span />
+          )}
+          {student.budgetTransferCategoryName && (
+            <InfoField label="Переведення на бюджет" value={student.budgetTransferCategoryName} span />
+          )}
+        </InfoSection>
+      )}
+
+      <InfoSection title="Службові дані">
+        <InfoField label="Остання зміна в ЄДЕБО" value={formatDate(student.modifyDate)} />
+        <InfoField label="Додано до системи" value={formatDate(student.createdAt)} />
+        <div className="col-span-2">
+          <p className="text-xs text-muted-foreground">Акаунт в системі</p>
+          {student.userId ? (
+            <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Підключено</p>
+          ) : (
+            <p className="text-sm font-medium text-muted-foreground">Відсутній</p>
+          )}
+        </div>
+      </InfoSection>
+    </div>
+  )
+}
+
+function AdminParentInfoTab({ studentId }: { studentId: string }) {
+  const { data: parentInfo, isLoading } = useAdminParentInfo(studentId)
+  const update = useAdminUpdateParentInfo(studentId)
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground">Завантаження…</p>
+  }
+
+  return (
+    <div className="space-y-6">
+      <ParentInfoForm
+        initial={parentInfo ?? null}
+        onSave={(data) => update.mutate(data)}
+        isSaving={update.isPending}
+      />
+    </div>
+  )
+}
+
+function AdminNotesTab({ studentId }: { studentId: string }) {
+  const { data: parentInfo, isLoading } = useAdminParentInfo(studentId)
+  const update = useAdminUpdateParentInfo(studentId)
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground">Завантаження…</p>
+  }
+
+  return (
+    <ParentInfoForm
+      initial={parentInfo ?? null}
+      onSave={(data) => update.mutate(data)}
+      isSaving={update.isPending}
+      notesOnly
+    />
+  )
+}
+
 export function StudentDetailSheet({ student, open, onClose }: StudentDetailSheetProps) {
+  const userRole = useAuthStore((s) => s.user?.role)
+  const canSeeParentInfo = PARENT_INFO_ROLES.includes(
+    userRole as (typeof PARENT_INFO_ROLES)[number],
+  )
+
   if (!student) return null
 
   const active = isStudentActive(student)
-
   const statusBadge = student.academicLeaveTypeName ? (
     <Badge className="shrink-0 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-100">
       Академвідпустка
@@ -58,19 +186,11 @@ export function StudentDetailSheet({ student, open, onClose }: StudentDetailShee
     </Badge>
   )
 
-  const educationFlags = [
-    student.isDualForm && 'Дуальна форма',
-    student.isSecondHigher && 'Другий вищий',
-    student.isShortTerm && 'Скорочений термін',
-  ]
-    .filter(Boolean)
-    .join(', ') || null
-
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent
         side="right"
-        className="w-full sm:w-[560px] sm:max-w-[560px] overflow-y-auto flex flex-col gap-0 p-0"
+        className="w-full sm:w-[580px] sm:max-w-[580px] overflow-y-auto flex flex-col gap-0 p-0"
       >
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-border">
           <div className="flex items-start justify-between gap-3">
@@ -85,69 +205,27 @@ export function StudentDetailSheet({ student, open, onClose }: StudentDetailShee
           </div>
         </SheetHeader>
 
-        <div className="flex-1 px-6 py-5 space-y-6 overflow-y-auto">
-
-          <InfoSection title="Персональні дані">
-            <InfoField label="Дата народження" value={formatDate(student.birthday)} />
-            <InfoField label="Стать" value={student.personSexName} />
-            <InfoField label="ЄДЕБО ID (освіта)" value={student.educationId} />
-            <InfoField label="ЄДЕБО ID (особа)" value={student.personId} />
-          </InfoSection>
-
-          <InfoSection title="Навчання">
-            <InfoField label="Структурний підрозділ" value={student.facultyName} span />
-            <InfoField label="Спеціальність" value={student.fullSpecialityName} span />
-            <InfoField label="Освітня програма" value={student.studyProgramName} span />
-            <InfoField label="Кваліфікація" value={student.professionInfo} span />
-            <InfoField label="Освітній ступінь" value={student.qualificationGroupName} />
-            <InfoField label="Форма навчання" value={student.educationFormName} />
-            <InfoField label="Курс" value={student.courseName} />
-            <InfoField label="Група" value={student.groupName} />
-            <InfoField label="Початок навчання" value={formatDate(student.educationDateBegin)} />
-            <InfoField label="Кінець навчання" value={formatDate(student.educationDateEnd)} />
-            {student.licenseYear && (
-              <InfoField label="Рік набору" value={student.licenseYear} />
-            )}
-            {educationFlags && (
-              <InfoField label="Особливості" value={educationFlags} span />
-            )}
-          </InfoSection>
-
-          {(!active || student.expelEducationTypeName || student.academicLeaveTypeName) && (
-            <InfoSection title="Статус навчання">
-              {student.expelEducationTypeName && (
-                <InfoField label="Причина відрахування" value={student.expelEducationTypeName} span />
-              )}
-              {student.academicLeaveTypeName && (
-                <InfoField label="Академічна відпустка" value={student.academicLeaveTypeName} span />
-              )}
-            </InfoSection>
+        <div className="flex-1 px-6 py-5 overflow-y-auto">
+          {canSeeParentInfo ? (
+            <Tabs defaultValue="personal">
+              <TabsList className="mb-5 w-full">
+                <TabsTrigger value="personal" className="flex-1">Особиста</TabsTrigger>
+                <TabsTrigger value="parents" className="flex-1">Батьки / Опікуни</TabsTrigger>
+                <TabsTrigger value="notes" className="flex-1">Нотатки</TabsTrigger>
+              </TabsList>
+              <TabsContent value="personal">
+                <PersonalTab student={student} />
+              </TabsContent>
+              <TabsContent value="parents">
+                <AdminParentInfoTab studentId={student.id} />
+              </TabsContent>
+              <TabsContent value="notes">
+                <AdminNotesTab studentId={student.id} />
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <PersonalTab student={student} />
           )}
-
-          {(student.foreignTypeName || student.budgetTransferCategoryName) && (
-            <InfoSection title="Додаткові відомості">
-              {student.foreignTypeName && (
-                <InfoField label="Категорія іноземця" value={student.foreignTypeName} span />
-              )}
-              {student.budgetTransferCategoryName && (
-                <InfoField label="Переведення на бюджет" value={student.budgetTransferCategoryName} span />
-              )}
-            </InfoSection>
-          )}
-
-          <InfoSection title="Службові дані">
-            <InfoField label="Остання зміна в ЄДЕБО" value={formatDate(student.modifyDate)} />
-            <InfoField label="Додано до системи" value={formatDate(student.createdAt)} />
-            <div className="col-span-2">
-              <p className="text-xs text-muted-foreground">Акаунт в системі</p>
-              {student.userId ? (
-                <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Підключено</p>
-              ) : (
-                <p className="text-sm font-medium text-muted-foreground">Відсутній</p>
-              )}
-            </div>
-          </InfoSection>
-
         </div>
 
         <SheetFooter className="px-6 py-4 border-t border-border">

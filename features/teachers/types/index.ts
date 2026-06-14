@@ -49,6 +49,19 @@ export interface TeacherDto {
   modifyDate: string | null
 }
 
+export interface QualificationUpgradeDto {
+  id: string
+  source: 'EDEBO_PARSED' | 'MANUAL'
+  rawText: string | null
+  courseName: string
+  organizationName: string | null
+  startDate: string
+  endDate: string
+  hours: number
+  certificateNumber: string | null
+  createdAt: string
+}
+
 export interface TeacherFilters {
   search: string
   facultyId: number | null

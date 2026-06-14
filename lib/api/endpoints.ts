@@ -23,6 +23,7 @@ export const ENDPOINTS = {
     PROFILE: '/users/profile',
     BY_ID: (id: string) => `/users/by-id/${id}`,
     CHANGE_PASSWORD: '/users/profile/change-password',
+    REQUEST_EMAIL_CHANGE: '/users/profile/email',
     RESET_PASSWORD: (id: string) => `/users/${id}/reset-password`,
   },
   ADMIN: {
@@ -70,6 +71,61 @@ export const ENDPOINTS = {
   },
   STAFF: {
     LIST: '/staff',
+    QUALIFICATION_UPGRADES: (teacherId: string) => `/staff/${teacherId}/qualification-upgrades`,
+  },
+  ELECTIVES: {
+    CATALOG: '/electives/catalog',
+    SELECT: '/electives/select',
+    CANCEL_SELECT: (id: string) => `/electives/select/${id}`,
+    MY: '/electives/my',
+    GROUP_STATS: (groupId: string) => `/electives/group/${groupId}/stats`,
+    ADMIN_CATALOG: '/electives/admin/catalog',
+    ADMIN_CATALOG_ITEM: (id: string) => `/electives/admin/catalog/${id}`,
+    ADMIN_CATALOG_STATUS: (id: string) => `/electives/admin/catalog/${id}/status`,
+    ADMIN_CATALOG_CLONE: '/electives/admin/catalog/clone',
+    ADMIN_CURRICULUM_TERMS: '/electives/admin/curriculum-terms',
+    ADMIN_ASSIGN: '/electives/admin/assign',
+    ADMIN_CONFIRM_ALL: '/electives/admin/confirm-all',
+    ADMIN_ENROLLMENT_LIST: '/electives/admin/enrollment-list',
+    ADMIN_UNSELECTED: '/electives/admin/unselected',
+    // New architecture
+    BLOCKS: '/electives/blocks',
+    SELECTIONS: '/electives/selections',
+    SELECTION: (id: string) => `/electives/selections/${id}`,
+    MY_SELECTIONS: '/electives/my-selections',
+    ADMIN_SEASONS: '/electives/admin/seasons',
+    ADMIN_SEASON: (id: string) => `/electives/admin/seasons/${id}`,
+    ADMIN_SEASON_STATUS: (id: string) => `/electives/admin/seasons/${id}/status`,
+    ADMIN_SEASON_OFFERINGS: (seasonId: string) => `/electives/admin/seasons/${seasonId}/offerings`,
+    ADMIN_OFFERING: (id: string) => `/electives/admin/offerings/${id}`,
+    ADMIN_BLOCKS: '/electives/admin/blocks',
+    ADMIN_BLOCK_COMPONENTS: (blockId: string) => `/electives/admin/blocks/${blockId}/components`,
+    ADMIN_AUTO_ASSIGN_BULK: (seasonId: string) => `/electives/admin/seasons/${seasonId}/auto-assign`,
+    ADMIN_SELECTIONS_V2: '/electives/admin/selections',
+    ADMIN_CONFIRM_SELECTIONS: '/electives/admin/confirm-selections',
+    ADMIN_GROUP_STATS_V2: (groupId: string) => `/electives/admin/group/${groupId}/stats-v2`,
+    ADMIN_ENROLLMENT_LIST_V2: '/electives/admin/enrollment-list-v2',
+    ADMIN_UNSELECTED_V2: '/electives/admin/unselected-v2',
+    // Campaigns (річні кампанії вибору ВК)
+    MY_BLOCKS: '/electives/my-blocks',
+    ADMIN_CAMPAIGNS: '/electives/admin/campaigns',
+    ADMIN_CAMPAIGN: (id: string) => `/electives/admin/campaigns/${id}`,
+    ADMIN_CAMPAIGN_STATUS: (id: string) => `/electives/admin/campaigns/${id}/status`,
+    ADMIN_CAMPAIGN_GENERATE: (id: string) => `/electives/admin/campaigns/${id}/generate`,
+    ADMIN_CAMPAIGN_PROGRESS: (id: string) => `/electives/admin/campaigns/${id}/progress`,
+    ADMIN_GROUP_CONFIRM: (seasonId: string, groupId: string) =>
+      `/electives/admin/seasons/${seasonId}/groups/${groupId}/confirm`,
+  },
+  GROUP_LEADER: {
+    MY_GROUPS: '/group-leader/my-groups',
+    GROUP_STUDENTS: (groupId: string) => `/group-leader/${groupId}/students`,
+    STUDENT: (groupId: string, studentId: string) =>
+      `/group-leader/${groupId}/students/${studentId}`,
+    PARENT_INFO: (groupId: string, studentId: string) =>
+      `/group-leader/${groupId}/students/${studentId}/parent-info`,
+    EXPORT: (groupId: string) => `/group-leader/${groupId}/export`,
+    // Admin (HEAD_OF_DEPARTMENT+) — no groupId needed
+    ADMIN_PARENT_INFO: (studentId: string) => `/students/${studentId}/parent-info`,
   },
   EDBO: {
     SYNC_STUDENTS: '/edbo/sync/students',
@@ -93,6 +149,10 @@ export const ENDPOINTS = {
     CURRICULUM: (id: string) => `/curricula/${id}`,
     CURRICULUM_VERSIONS: (id: string) => `/curricula/${id}/versions`,
 
+    // Import from Excel
+    IMPORT_PREVIEW: '/curricula/import/preview',
+    IMPORT_COMMIT: '/curricula/import/commit',
+
     // Curriculum versions
     VERSION_CREATE: (curriculumId: string) => `/curricula/${curriculumId}/versions`,
     VERSION: (id: string) => `/curriculum-versions/${id}`,
@@ -107,6 +167,7 @@ export const ENDPOINTS = {
 
     // Elective blocks
     ELECTIVE_BLOCKS: (sectionId: string) => `/curriculum-sections/${sectionId}/elective-blocks`,
+    ELECTIVE_BLOCK: (id: string) => `/elective-blocks/${id}`,
 
     // Components
     COMPONENTS: (sectionId: string) => `/curriculum-sections/${sectionId}/components`,
@@ -147,5 +208,19 @@ export const ENDPOINTS = {
     WORKING_COMPONENT_TERM: (termId: string) => `/working-component-terms/${termId}`,
     WORKING_ASSIGNMENTS: '/working-curricula/group-assignments',
     GROUP_WORKING_CURRICULA: (groupId: string) => `/working-curricula/by-group/${groupId}`,
+  },
+  TEACHER_LOAD: {
+    MY: '/teacher-load/my',
+    BY_ALL_TEACHERS: '/teacher-load/by-all-teachers',
+    BY_WORKING_CURRICULUM: (id: string) => `/teacher-load/by-working-curriculum/${id}`,
+    BY_TEACHER: (teacherId: string) => `/teacher-load/by-teacher/${teacherId}`,
+    SUBJECT_ASSIGNMENTS: '/teacher-load/subject-assignments',
+    SUBJECT_ASSIGNMENTS_GENERATE: (workingCurriculumId: string) =>
+      `/teacher-load/subject-assignments/generate/${workingCurriculumId}`,
+    SUBJECT_ASSIGNMENT: (id: string) => `/teacher-load/subject-assignments/${id}`,
+    LESSON_ASSIGNMENT: (id: string) => `/teacher-load/lesson-assignments/${id}`,
+    SUBJECT_ASSIGNMENTS_CONFIRM: '/teacher-load/subject-assignments/confirm',
+    SUBJECT_ASSIGNMENTS_REVOKE: '/teacher-load/subject-assignments/revoke',
+    DISTRIBUTION_MODE: '/teacher-load/distribution-mode',
   },
 } as const

@@ -2,7 +2,7 @@
 
 > Persistent instruction file for Claude Code working in this repository as an AI pair programmer / maintainer.
 
----
+***
 
 ## 1. Project summary
 
@@ -19,7 +19,7 @@
 - Auth state in Zustand (`lib/stores/auth.store.ts`), persisted to `sessionStorage` (user only)
 - Feature-based directory structure: `features/{feature}/api`, `components`, `types`
 
----
+***
 
 ## 2. Core architecture rules
 
@@ -30,13 +30,35 @@
 - **Frontend types must stay aligned with backend DTOs.** When the backend changes a response shape, update `features/{feature}/types/index.ts`.
 - **Do not duplicate business logic across pages.** If logic repeats in two places, it belongs in a shared hook or a feature `api/` hook.
 
----
+***
 
 ## 3. Next.js 16 conventions
 
 - **App Router** — all routing is under `app/`.
-- **Server components by default.** Most `app/(pages)/*/page.tsx` files are server components that render client feature components.
-- **Client components when needed** — mark `'use client'` only when the component needs state, effects, event handlers, or browser APIs.
+
+- **Server components by default.** `app/(pages)/*/page.tsx` files MUST be server
+  components — never add `'use client'` to a page file. If a page needs interactivity,
+  extract only the interactive part into `features/{feature}/components/{Feature}Client.tsx`
+  and render it from the server page.
+
+- **`'use client'` placement rule.** The directive belongs exclusively in leaf-level
+  feature components that directly use: `useState`, `useReducer`, `useEffect`, `useRef`,
+  `useContext`, browser APIs (`window`, `document`, `localStorage`, `sessionStorage`),
+  or event handler props (`onClick`, `onChange`, etc.). If none of these apply — the
+  component does NOT need `'use client'`.
+
+- **Metadata lives in `page.tsx` only.** Every `app/(pages)/*/page.tsx` exports
+  `metadata: Metadata`. The title value MUST be a short label with NO suffix —
+  the root `app/layout.tsx` has `title.template: '%s | MyKPEFK'` which appends
+  the suffix automatically.
+
+  ✅ Correct:  `title: 'Академічні групи'`
+  ❌ Wrong:    `title: 'Академічні групи | MyKPEFK'`  ← causes double suffix in browser tab
+
+- **No `layout.tsx` for metadata only.** A nested `layout.tsx` is justified only when
+  a group of routes shares actual UI (a secondary sidebar, a sub-navigation bar, etc.).
+  Never create a `layout.tsx` whose sole purpose is to export `metadata`.
+
 - **`(pages)/layout.tsx` is a client component** — it calls `useMe()` on mount to verify the session and redirects to `/sign-in` on failure. This is the auth gate for all protected pages.
 - **No `middleware.ts`.** Auth protection is entirely client-side.
 - **No server actions.** No `'use server'` directive anywhere in the codebase.
@@ -44,7 +66,7 @@
 - **Security headers** are set in `next.config.ts` via `headers()` — do not remove them.
 - **Dynamic routes:** `/profile/[id]` for user profiles by ID.
 
----
+***
 
 ## 4. UI / component rules
 
@@ -56,7 +78,7 @@
 - **Theme:** `next-themes` with `class` strategy is wired in `providers.tsx`. Use `dark:` Tailwind variants for theme-responsive styles.
 - **Icons:** `lucide-react` only — do not import from other icon libraries.
 
----
+***
 
 ## 5. State and data-fetching rules
 
@@ -69,7 +91,7 @@
 - **Auth store** canonical location: `lib/stores/auth.store.ts`. The `store/auth.store.ts` path also exists — both currently export the same store.
 - **Loading and error states:** use skeleton components (`components/ui/skeleton.tsx`) for loading, and surface errors via `sonner` or inline error UI. Do not leave loading states unhandled.
 
----
+***
 
 ## 6. Styling rules
 
@@ -79,7 +101,7 @@
 - **`tailwind-merge` is already in `cn()`** — no need to call it separately.
 - **Do not mix arbitrary inline styles with Tailwind** unless there is no Tailwind equivalent.
 
----
+***
 
 ## 7. Change workflow for Claude Code
 
@@ -99,7 +121,7 @@
 **After changes:**
 - Briefly state: which files changed, what the behavior change is, any edge cases or risks
 
----
+***
 
 ## 8. What not to do
 
@@ -107,6 +129,12 @@
 - **Do not hardcode API path strings.** Add to `ENDPOINTS` in `lib/api/endpoints.ts`.
 - **Do not add a `middleware.ts`** without an explicit request — the current auth pattern is intentionally client-side.
 - **Do not convert server components to client components** just for convenience.
+- **Do not add `'use client'` to `page.tsx` files.** Extract interactive logic into a
+  `features/{feature}/components/{Feature}Client.tsx` component instead and keep the page as a server component.
+- **Do not hardcode `| MyKPEFK` in metadata titles.** The root layout template handles
+  the suffix — adding it manually produces `Title | MyKPEFK | MyKPEFK` in the browser tab.
+- **Do not create `layout.tsx` for metadata alone.** Metadata belongs in `page.tsx`.
+  `layout.tsx` is for shared UI only.
 - **Do not add server actions** (`'use server'`) — this pattern is not used anywhere in the codebase.
 - **Do not bypass the `cn()` helper** for Tailwind class composition.
 - **Do not add a second state library** (Redux, Jotai, etc.) — Zustand + TanStack Query covers all current needs.
@@ -114,13 +142,17 @@
 - **Do not invent architecture** (repositories, service layer classes, etc.) that is not present in the codebase.
 - **Do not touch `components/ui/`** directly unless adding a new shadcn component — these are generated/managed by the shadcn CLI.
 
----
+***
 
 ## 9. Practical checklist
 
 ```
 [ ] Read feature files: api/, components/, types/
 [ ] Confirm server vs. client component boundary
+[ ] page.tsx is a Server Component — no 'use client' on the file
+[ ] metadata.title is a short label, NO '| MyKPEFK' suffix
+[ ] Interactive logic extracted to features/{feature}/components/{Feature}Client.tsx
+[ ] No layout.tsx created solely for metadata
 [ ] Confirm ENDPOINTS key for any API path
 [ ] Check if a similar pattern already exists
 [ ] State a short plan before writing

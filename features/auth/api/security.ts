@@ -104,6 +104,18 @@ export function useChangePassword() {
   })
 }
 
+export function useRequestEmailChange() {
+  return useMutation({
+    mutationFn: (data: { newEmail: string; password: string }) =>
+      apiPost<{ success: boolean }>(ENDPOINTS.USERS.REQUEST_EMAIL_CHANGE, {
+        newEmail: data.newEmail,
+        password: data.password,
+      }),
+    onSuccess: () =>
+      toast.success('Лист із підтвердженням надіслано на нову адресу'),
+  })
+}
+
 export function useAdminReset2FA() {
   const qc = useQueryClient()
   return useMutation({

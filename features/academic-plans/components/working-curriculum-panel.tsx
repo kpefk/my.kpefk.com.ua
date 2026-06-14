@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import { CalendarDays, CheckCircle, Clock, Plus, Trash2, Users } from 'lucide-react'
 
 import {
@@ -14,22 +14,24 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
 import {
   useApproveWorkingCurriculum,
+  useAssignTeacherToTerm,
   useDeleteWorkingCurriculum,
   useInitializeWorkingCurriculumTerms,
   useUpdateWorkingComponentTerm,
   useWorkingCurriculum,
   useWorkingCurricula,
 } from '../api'
+import { useTeachers } from '../../teachers/api'
+import { DEFAULT_FILTERS } from '../../teachers/types'
 import {
   COMPONENT_TYPE_LABELS,
-  CONTROL_FORM_SHORT,
+  type ComponentType,
   type WorkingComponentTermDto,
   type WorkingCurriculumSummaryDto,
 } from '../types'
@@ -126,12 +128,7 @@ interface EditCellProps {
 
 function EditCell({ value, onChange, onBlur, disabled, invalid = false, isDecimal = false }: EditCellProps) {
   return (
-    <td
-      className={cn(
-        'px-1 py-1 text-center',
-        invalid && 'bg-red-50 dark:bg-red-950/20',
-      )}
-    >
+    <td className={cn('border border-gray-300 p-0 text-center align-middle', invalid && 'bg-red-50/40 dark:bg-red-950/10')}>
       <input
         type={isDecimal ? 'text' : 'number'}
         inputMode={isDecimal ? 'decimal' : 'numeric'}
@@ -142,13 +139,129 @@ function EditCell({ value, onChange, onBlur, disabled, invalid = false, isDecima
         onBlur={onBlur}
         disabled={disabled}
         className={cn(
-          'w-14 text-center font-mono text-xs bg-transparent outline-none rounded',
-          'border border-transparent',
-          !disabled && 'hover:border-input focus:border-ring focus:ring-1 focus:ring-ring',
-          disabled && 'cursor-default text-foreground',
+          'w-full text-center font-mono text-[11px] bg-transparent outline-none py-1.5 px-0.5',
+          !disabled && 'focus:bg-blue-50/30 dark:focus:bg-blue-950/10',
+          disabled && 'cursor-default',
           invalid && 'text-red-600 dark:text-red-400',
         )}
       />
+    </td>
+  )
+}
+
+// ─── Teacher cell (per-component row) ────────────────────────────────────────
+
+/**
+ * Клітинка вибору викладача для рядка компонента.
+ * Показує прізвище+ініціали або "—". При натисканні відкриває пошук.
+ * Використовує перший термін компонента для запису (teacherId однаковий для всіх термів компонента;
+ * якщо ні — показує перший знайдений).
+ */
+function TeacherCell({
+  termIds,
+  currentTeacher,
+  workingCurriculumId,
+  disabled,
+}: {
+  termIds: string[]          // всі term.id компонента (для масового оновлення)
+  currentTeacher: { id: string; firstName: string; lastName: string; middleName: string | null } | null
+  workingCurriculumId: string
+  disabled: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const assign = useAssignTeacherToTerm()
+  const { data: teachers } = useTeachers(DEFAULT_FILTERS)
+
+  const filtered = (teachers ?? []).filter((t) => {
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    return (
+      t.lastName.toLowerCase().includes(q) ||
+      t.firstName.toLowerCase().includes(q) ||
+      (t.middleName ?? '').toLowerCase().includes(q)
+    )
+  }).slice(0, 20)
+
+  function shortName(t: { firstName: string; lastName: string; middleName: string | null }): string {
+    const i = t.firstName[0] ?? ''
+    const p = t.middleName?.[0] ?? ''
+    return `${t.lastName} ${i}.${p ? `${p}.` : ''}`
+  }
+
+  function handleSelect(teacherId: string | null) {
+    const firstId = termIds[0]
+    if (firstId === undefined) return
+    assign.mutate({ termId: firstId, workingCurriculumId, teacherId })
+    setOpen(false)
+    setSearch('')
+  }
+
+  if (disabled) {
+    return (
+      <td className="border border-gray-300 px-1 py-1.5 text-center align-middle text-[10px] text-gray-600 whitespace-nowrap">
+        {currentTeacher !== null ? shortName(currentTeacher) : '—'}
+      </td>
+    )
+  }
+
+  return (
+    <td className="border border-gray-300 px-0.5 py-1 align-middle relative">
+      <button
+        type="button"
+        onClick={() => { setOpen((v) => !v); setSearch('') }}
+        className={cn(
+          'w-full text-left text-[10px] px-1 py-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800',
+          currentTeacher !== null ? 'text-gray-800 dark:text-gray-200' : 'text-gray-400 italic',
+        )}
+      >
+        {currentTeacher !== null ? shortName(currentTeacher) : 'призначити…'}
+      </button>
+
+      {open && (
+        <div className="absolute z-50 top-full left-0 mt-0.5 w-56 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded shadow-lg text-[11px]">
+          <div className="p-1 border-b border-gray-200 dark:border-gray-700">
+            <input
+              autoFocus
+              type="text"
+              placeholder="Пошук…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full px-1.5 py-0.5 text-[11px] border border-gray-300 dark:border-gray-600 rounded bg-transparent outline-none focus:ring-1 focus:ring-blue-400"
+            />
+          </div>
+          <ul className="max-h-48 overflow-y-auto">
+            {currentTeacher !== null && (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleSelect(null)}
+                  className="w-full text-left px-2 py-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
+                >
+                  Зняти призначення
+                </button>
+              </li>
+            )}
+            {filtered.length === 0 && (
+              <li className="px-2 py-1 text-gray-400 italic">Нікого не знайдено</li>
+            )}
+            {filtered.map((t) => (
+              <li key={t.id}>
+                <button
+                  type="button"
+                  onClick={() => handleSelect(t.id)}
+                  className={cn(
+                    'w-full text-left px-2 py-1 hover:bg-blue-50 dark:hover:bg-blue-950/20',
+                    currentTeacher?.id === t.id && 'font-semibold bg-blue-50/50 dark:bg-blue-950/10',
+                  )}
+                >
+                  {shortName(t)}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </td>
   )
 }
@@ -298,317 +411,375 @@ function HourDistributionTable({
 
   const isReadOnly = !canEdit || wc.isApproved
 
-  // Sort by semester → component name
-  const sorted = [...wc.componentTerms].sort(
-    (a, b) =>
-      a.componentTerm.semesterNumber - b.componentTerm.semesterNumber ||
-      a.componentTerm.component.name.localeCompare(b.componentTerm.component.name, 'uk'),
-  )
+  // Backend delivers rows in curriculum plan order: section.orderIndex → component.orderIndex → semesterNumber.
+  // No client-side reordering — preserving the plan sequence from the server.
+  const sorted = [...wc.componentTerms]
 
-  // Compute column totals from drafts
-  const totalLecture = sorted.reduce((s, t) => s + (parseInt(drafts[t.id]?.lectureHours ?? '') || 0), 0)
-  const totalPractical = sorted.reduce((s, t) => s + (parseInt(drafts[t.id]?.practicalHours ?? '') || 0), 0)
-  const totalLab = sorted.reduce((s, t) => s + (parseInt(drafts[t.id]?.labHours ?? '') || 0), 0)
-  const totalSeminar = sorted.reduce((s, t) => s + (parseInt(drafts[t.id]?.seminarHours ?? '') || 0), 0)
-  const totalIndependent = sorted.reduce((s, t) => s + (parseInt(drafts[t.id]?.independentHours ?? '') || 0), 0)
-  const totalConsultation = sorted.reduce((s, t) => s + (parseInt(drafts[t.id]?.consultationHours ?? '') || 0), 0)
-  const totalAll = totalLecture + totalPractical + totalLab + totalSeminar + totalIndependent + totalConsultation
+  // ── Per-semester totals (footer) and component-grouped rows ─────────────────
+
+  type SemTotal = {
+    audTotal: number; lecture: number; practicalLab: number; seminar: number
+    srsTotal: number; sprs: number; prep: number
+  }
+
+  const semesters = wc.semesterNumbers
+  const nSems = semesters.length
   const totalCanonical = sorted.reduce((s, t) => s + t.componentTerm.hours, 0)
+  const totalEctsAll = sorted.reduce((s, t) => s + parseFloat(t.componentTerm.ects), 0)
+
+  const semTotals = new Map<number, SemTotal>(
+    semesters.map((s) => [s, { audTotal: 0, lecture: 0, practicalLab: 0, seminar: 0, srsTotal: 0, sprs: 0, prep: 0 }]),
+  )
+  for (const t of sorted) {
+    const entry = semTotals.get(t.componentTerm.semesterNumber)
+    if (entry === undefined) continue
+    const d = drafts[t.id]
+    if (d === undefined) continue
+    const lec = parseInt(d.lectureHours) || 0
+    const prac = parseInt(d.practicalHours) || 0
+    const lab_ = parseInt(d.labHours) || 0
+    const sem_ = parseInt(d.seminarHours) || 0
+    const ind = parseInt(d.independentHours) || 0
+    const con = parseInt(d.consultationHours) || 0
+    entry.audTotal += lec + prac + lab_ + sem_
+    entry.lecture += lec; entry.practicalLab += prac + lab_; entry.seminar += sem_
+    entry.srsTotal += ind + con; entry.sprs += ind; entry.prep += con
+  }
+
+  // Group terms by component, preserving curriculum section/component order
+  type ComponentRow = {
+    componentId: string
+    code: string | null
+    name: string
+    componentType: ComponentType
+    termsBySemester: Map<number, WorkingComponentTermDto>
+  }
+  const rows: ComponentRow[] = []
+  const rowMap = new Map<string, ComponentRow>()
+  for (const t of sorted) {
+    const cid = t.componentTerm.component.id
+    const existing = rowMap.get(cid)
+    if (existing !== undefined) {
+      existing.termsBySemester.set(t.componentTerm.semesterNumber, t)
+    } else {
+      const row: ComponentRow = {
+        componentId: cid,
+        code: t.componentTerm.component.code,
+        name: t.componentTerm.component.name,
+        componentType: t.componentTerm.component.componentType,
+        termsBySemester: new Map([[t.componentTerm.semesterNumber, t]]),
+      }
+      rowMap.set(cid, row)
+      rows.push(row)
+    }
+  }
+
+  // Roman ordinals for semester labels
+  const ORDINAL: Record<number, string> = {
+    1: 'І', 2: 'ІІ', 3: 'ІІІ', 4: 'IV', 5: 'V', 6: 'VI', 7: 'VII', 8: 'VIII',
+  }
 
   return (
     <div className="relative overflow-x-auto">
-      {/* Saving indicator */}
       {updateTerm.isPending && (
-        <div className="absolute top-2 right-3 text-xs text-muted-foreground animate-pulse z-10">
+        <div className="absolute top-1 right-2 text-[10px] text-gray-500 animate-pulse z-10">
           Збереження…
         </div>
       )}
 
-      {/* Legend */}
       {!isReadOnly && (
-        <div className="flex items-center gap-4 px-4 py-2 border-b border-border bg-muted/10 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <StatusDot status="complete" /> Заповнено
-          </span>
-          <span className="flex items-center gap-1.5">
-            <StatusDot status="partial" /> Частково
-          </span>
-          <span className="flex items-center gap-1.5">
-            <StatusDot status="error" /> Перевищено
-          </span>
-          <span className="flex items-center gap-1.5">
-            <StatusDot status="empty" /> Не заповнено
-          </span>
-          <span className="ml-auto italic">
-            Год.* — загальний обсяг за навчальним планом (не редагується)
-          </span>
+        <div className="flex items-center gap-3 px-3 py-1 border-b border-gray-300 bg-gray-50 text-[10px] text-gray-500">
+          <span className="flex items-center gap-1"><StatusDot status="complete" /> Заповнено</span>
+          <span className="flex items-center gap-1"><StatusDot status="partial" /> Частково</span>
+          <span className="flex items-center gap-1"><StatusDot status="error" /> Перевищено</span>
+          <span className="flex items-center gap-1"><StatusDot status="empty" /> Не заповнено</span>
         </div>
       )}
 
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr className="bg-muted/40 text-xs text-muted-foreground">
-            {/* Readonly info */}
-            <th className="text-left px-3 py-2 font-medium whitespace-nowrap min-w-[180px]">
-              Компонент
+      {/*
+        Left (7): Код | Назва | Екз | Зал | КП/КР | ЄКТС | Год
+        Per-semester (8 × n): AudΣ | Лекц | Практ | Лаб | Семін | СрсΣ | СПРС | Підгот
+        Weekly (n): Год/тижд per semester
+        Status (1): ●
+        Total: 8 + 9n
+      */}
+      <table className="w-full text-[11px] border-collapse">
+        <thead className="text-center text-[10px] font-semibold bg-gray-100">
+
+          {/* ── Row 1: top-level group headers ── */}
+          <tr>
+            <th rowSpan={3} className="border border-gray-400 px-0.5 py-0.5 align-middle w-10">
+              Код
             </th>
-            <th className="text-center px-2 py-2 font-medium whitespace-nowrap">Сем.</th>
-            <th className="text-center px-2 py-2 font-medium whitespace-nowrap">
-              Год.*
+            <th rowSpan={3} className="border border-gray-400 px-1 py-0.5 text-left align-middle min-w-[120px] w-[120px]">
+              Назва освітнього компонента /<br />навчального предмета
             </th>
-            <th className="text-center px-2 py-2 font-medium whitespace-nowrap">ЄКТС</th>
-            <th className="text-center px-2 py-2 font-medium whitespace-nowrap">Контр.</th>
-            {/* Separator */}
-            <th className="w-px bg-border" />
-            {/* Editable distribution */}
-            <th className="text-center px-1 py-2 font-medium whitespace-nowrap">Лекц.</th>
-            <th className="text-center px-1 py-2 font-medium whitespace-nowrap">Практ.</th>
-            <th className="text-center px-1 py-2 font-medium whitespace-nowrap">Лаб.</th>
-            <th className="text-center px-1 py-2 font-medium whitespace-nowrap">Семін.</th>
-            <th className="text-center px-1 py-2 font-medium whitespace-nowrap">СРС</th>
-            <th className="text-center px-1 py-2 font-medium whitespace-nowrap">Конс.</th>
-            {/* Computed total */}
-            <th className="text-center px-2 py-2 font-medium whitespace-nowrap">Разом</th>
-            {/* Remainder to canonical */}
-            <th
-              className="text-center px-2 py-2 font-medium whitespace-nowrap text-muted-foreground/70"
-              title="Залишок до нормативного обсягу (норматив − розподілено)"
-            >
-              Залиш.
+            <th colSpan={3} className="border border-gray-400 px-0.5 py-0.5 leading-tight">
+              Розподіл за<br />семестрами
             </th>
-            {/* Weekly hours */}
-            <th className="text-center px-1 py-2 font-medium whitespace-nowrap text-muted-foreground/70">
-              Тижд.Л
+            <th rowSpan={3} className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 whitespace-nowrap">
+              Кредити ЄКТС
             </th>
-            <th className="text-center px-1 py-2 font-medium whitespace-nowrap text-muted-foreground/70">
-              Тижд.П
+            <th rowSpan={3} className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8 whitespace-nowrap" title="Загальний нормативний обсяг годин">
+              Години
             </th>
-            {/* Status */}
-            <th className="px-2 py-2 w-6" />
+            {semesters.map((sem) => (
+              <th key={sem} colSpan={7} className="border border-gray-400 px-0.5 py-0.5 leading-tight">
+                {ORDINAL[sem] ?? String(sem)} семестр — Кількість годин
+              </th>
+            ))}
+            <th colSpan={nSems} className="border border-gray-400 px-0.5 py-0.5 leading-tight font-normal text-gray-600">
+              Розподіл навч.<br />роботи
+            </th>
+            <th rowSpan={4} className="border border-gray-400 p-0.5 align-middle text-left min-w-[80px] w-[80px] font-normal text-gray-700 leading-tight whitespace-nowrap">
+              Викладач
+            </th>
+            <th rowSpan={4} className="border border-gray-400 w-5" />
+          </tr>
+
+          {/* ── Row 2: sub-group headers ── */}
+          <tr>
+            <th rowSpan={2} className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal">Екзамени</th>
+            <th rowSpan={2} className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal">Заліки</th>
+            <th rowSpan={2} className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal">КП / КР</th>
+            {semesters.map((sem) => (
+              <Fragment key={sem}>
+                <th colSpan={4} className="border border-gray-400 px-0.5 py-0.5">Аудиторних</th>
+                <th colSpan={3} className="border border-gray-400 px-0.5 py-0.5">Самостійної роботи</th>
+              </Fragment>
+            ))}
+            {semesters.map((sem) => (
+              <th key={sem} rowSpan={2} className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal text-gray-600">
+                {ORDINAL[sem] ?? String(sem)} сем. год/тижд
+              </th>
+            ))}
+          </tr>
+
+          {/* ── Row 3: leaf column headers ── */}
+          <tr>
+            {semesters.map((sem) => (
+              <Fragment key={sem}>
+                <th className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8 font-bold">Всього</th>
+                <th className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8">Лекції</th>
+                <th className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8">Практ./Лаб.</th>
+                <th className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8">Семінарські</th>
+                <th className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8 font-bold">Всього</th>
+                <th className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8">СПРС</th>
+                <th className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8">Підготовка до іспиту</th>
+              </Fragment>
+            ))}
+          </tr>
+
+          {/* ── Row 4: column numbers ── */}
+          <tr className="font-normal text-gray-400 text-[9px]">
+            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+              <td key={n} className="border border-gray-400 py-0.5 text-center">{n}</td>
+            ))}
+            {semesters.flatMap((sem, si) =>
+              [8, 9, 10, 11, 12, 13, 14].map((base) => (
+                <td key={`${sem}-${base}`} className="border border-gray-400 py-0.5 text-center">
+                  {base + si * 7}
+                </td>
+              )),
+            )}
+            {semesters.map((_, si) => (
+              <td key={si} className="border border-gray-400 py-0.5 text-center">
+                {8 + nSems * 7 + si}
+              </td>
+            ))}
           </tr>
         </thead>
 
         <tbody>
-          {sorted.map((t) => {
-            const draft = drafts[t.id]
-            const canonical = t.componentTerm.hours
-            const status = draft ? rowStatus(canonical, draft) : 'empty'
-            const sum = draft ? draftSum(draft) : 0
-            const isOver = sum > canonical
+          {rows.map((row) => {
+            const allTerms = semesters.flatMap((s) => {
+              const t = row.termsBySemester.get(s)
+              return t !== undefined ? [t] : []
+            })
+
+            const totalRowEcts = allTerms.reduce((s, t) => s + parseFloat(t.componentTerm.ects), 0)
+            const totalRowHours = allTerms.reduce((s, t) => s + t.componentTerm.hours, 0)
+            const ectsDisplay =
+              totalRowEcts % 1 === 0 ? String(Math.round(totalRowEcts)) : totalRowEcts.toFixed(1)
+
+            const examSems = allTerms
+              .filter((t) => t.componentTerm.controlForm === 'EXAM')
+              .map((t) => t.componentTerm.semesterNumber)
+            const creditSems = allTerms
+              .filter((t) => t.componentTerm.controlForm === 'TEST' || t.componentTerm.controlForm === 'DIFFERENTIATED_TEST')
+              .map((t) => t.componentTerm.semesterNumber)
+            const courseSems = allTerms
+              .filter((t) => t.componentTerm.controlForm === 'COURSE_WORK' || t.componentTerm.controlForm === 'COURSE_PROJECT')
+              .map((t) => t.componentTerm.semesterNumber)
+
+            const termStatuses = allTerms.map((t) => {
+              const d = drafts[t.id]
+              return d !== undefined ? rowStatus(t.componentTerm.hours, d) : ('empty' as RowStatus)
+            })
+            const rowSt: RowStatus = termStatuses.includes('error')
+              ? 'error'
+              : termStatuses.every((s) => s === 'complete')
+                ? 'complete'
+                : termStatuses.every((s) => s === 'empty')
+                  ? 'empty'
+                  : 'partial'
 
             return (
-              <tr
-                key={t.id}
-                className={cn(
-                  'border-t border-border/60 hover:bg-muted/20',
-                  isOver && 'bg-red-50/50 dark:bg-red-950/10',
-                )}
-              >
-                {/* Component name */}
-                <td className="px-3 py-1.5 max-w-[220px]">
-                  <div className="flex flex-col gap-0">
-                    {t.componentTerm.component.code && (
-                      <span className="font-mono text-xs text-muted-foreground leading-none">
-                        {t.componentTerm.component.code}
-                      </span>
-                    )}
-                    <span className="text-sm truncate leading-snug">
-                      {t.componentTerm.component.name}
-                    </span>
-                    {t.componentTerm.component.componentType !== 'DISCIPLINE' && (
-                      <span className="text-xs text-muted-foreground/70 italic leading-none">
-                        {COMPONENT_TYPE_LABELS[t.componentTerm.component.componentType]}
-                      </span>
-                    )}
-                  </div>
+              <tr key={row.componentId} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+
+                {/* ── Left block ── */}
+                <td className="border border-gray-300 px-1 py-1.5 text-center font-mono align-middle whitespace-nowrap">
+                  {row.code ?? ''}
                 </td>
-
-                {/* Semester (readonly) */}
-                <td className="px-2 py-1.5 text-center font-mono text-sm text-muted-foreground">
-                  {t.componentTerm.semesterNumber}
-                </td>
-
-                {/* Canonical hours (readonly) */}
-                <td className="px-2 py-1.5 text-center font-mono text-sm font-medium text-muted-foreground">
-                  {canonical}
-                </td>
-
-                {/* ECTS (readonly) */}
-                <td className="px-2 py-1.5 text-center font-mono text-sm text-muted-foreground">
-                  {t.componentTerm.ects}
-                </td>
-
-                {/* Control form (readonly) */}
-                <td className="px-2 py-1.5 text-center text-xs text-muted-foreground">
-                  {t.componentTerm.controlForm
-                    ? CONTROL_FORM_SHORT[t.componentTerm.controlForm]
-                    : '—'}
-                </td>
-
-                {/* Separator */}
-                <td className="w-px bg-border/40" />
-
-                {/* Editable: lecture */}
-                {draft ? (
-                  <>
-                    <EditCell
-                      value={draft.lectureHours}
-                      onChange={(v) => setField(t.id, 'lectureHours', v)}
-                      onBlur={() => handleBlur(t.id)}
-                      disabled={isReadOnly}
-                      invalid={isOver}
-                    />
-                    <EditCell
-                      value={draft.practicalHours}
-                      onChange={(v) => setField(t.id, 'practicalHours', v)}
-                      onBlur={() => handleBlur(t.id)}
-                      disabled={isReadOnly}
-                      invalid={isOver}
-                    />
-                    <EditCell
-                      value={draft.labHours}
-                      onChange={(v) => setField(t.id, 'labHours', v)}
-                      onBlur={() => handleBlur(t.id)}
-                      disabled={isReadOnly}
-                      invalid={isOver}
-                    />
-                    <EditCell
-                      value={draft.seminarHours}
-                      onChange={(v) => setField(t.id, 'seminarHours', v)}
-                      onBlur={() => handleBlur(t.id)}
-                      disabled={isReadOnly}
-                      invalid={isOver}
-                    />
-                    <EditCell
-                      value={draft.independentHours}
-                      onChange={(v) => setField(t.id, 'independentHours', v)}
-                      onBlur={() => handleBlur(t.id)}
-                      disabled={isReadOnly}
-                      invalid={isOver}
-                    />
-                    <EditCell
-                      value={draft.consultationHours}
-                      onChange={(v) => setField(t.id, 'consultationHours', v)}
-                      onBlur={() => handleBlur(t.id)}
-                      disabled={isReadOnly}
-                      invalid={isOver}
-                    />
-                  </>
-                ) : (
-                  // Draft not yet initialized — show placeholder cells
-                  <>
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <td key={i} className="px-1 py-1 text-center font-mono text-xs text-muted-foreground/40">—</td>
-                    ))}
-                  </>
-                )}
-
-                {/* Computed sum */}
-                <td
-                  className={cn(
-                    'px-2 py-1.5 text-center font-mono text-sm font-semibold',
-                    isOver && 'text-red-600 dark:text-red-400',
-                    !isOver && sum > 0 && sum === canonical && 'text-emerald-600 dark:text-emerald-400',
-                    sum === 0 && 'text-muted-foreground/40',
-                  )}
-                >
-                  {sum > 0 ? sum : '—'}
-                  {isOver && (
-                    <span className="ml-1 text-xs font-normal">
-                      (+{sum - canonical})
+                <td className="border border-gray-300 px-1.5 py-1.5 align-middle w-[120px] min-w-[120px]">
+                  {row.name}
+                  {row.componentType !== 'DISCIPLINE' && (
+                    <span className="text-[10px] text-gray-400 italic ml-1">
+                      ({COMPONENT_TYPE_LABELS[row.componentType]})
                     </span>
                   )}
                 </td>
+                <td className="border border-gray-300 px-0.5 py-1.5 text-center font-mono align-middle text-gray-700">
+                  {examSems.join(',')}
+                </td>
+                <td className="border border-gray-300 px-0.5 py-1.5 text-center font-mono align-middle text-gray-700">
+                  {creditSems.join(',')}
+                </td>
+                <td className="border border-gray-300 px-0.5 py-1.5 text-center font-mono align-middle text-gray-700">
+                  {courseSems.join(',')}
+                </td>
+                <td className="border border-gray-300 px-0.5 py-1.5 text-center font-mono align-middle">
+                  {ectsDisplay}
+                </td>
+                <td className="border border-gray-300 px-0.5 py-1.5 text-center font-mono align-middle font-semibold">
+                  {totalRowHours}
+                </td>
 
-                {/* Remainder to canonical: canonical − sum */}
-                {(() => {
-                  const rem = canonical - sum
+                {/* ── Per-semester column groups ── */}
+                {semesters.map((sem) => {
+                  const term = row.termsBySemester.get(sem)
+                  if (term === undefined) {
+                    return (
+                      <Fragment key={sem}>
+                        {Array.from({ length: 7 }, (_, i) => (
+                          <td key={i} className="border border-gray-300 px-0.5 py-1.5 text-center text-gray-200 align-middle bg-gray-50/50">—</td>
+                        ))}
+                      </Fragment>
+                    )
+                  }
+                  const d = drafts[term.id]
+                  const lec = d !== undefined ? (parseInt(d.lectureHours) || 0) : term.lectureHours
+                  const prac = d !== undefined ? (parseInt(d.practicalHours) || 0) : term.practicalHours
+                  const lab_ = d !== undefined ? (parseInt(d.labHours) || 0) : term.labHours
+                  const semH = d !== undefined ? (parseInt(d.seminarHours) || 0) : term.seminarHours
+                  const ind = d !== undefined ? (parseInt(d.independentHours) || 0) : term.independentHours
+                  const con = d !== undefined ? (parseInt(d.consultationHours) || 0) : term.consultationHours
+                  const audTotal = lec + prac + lab_ + semH
+                  const srsTotal = ind + con
+                  const isOver = audTotal + srsTotal > term.componentTerm.hours
                   return (
-                    <td
-                      className="px-2 py-1.5 text-center font-mono text-xs"
-                      title={`Залишок: ${rem} год. до нормативу ${canonical} год.`}
-                    >
-                      {sum === 0 ? (
-                        // Haven't started — show full canonical in gray
-                        <span className="text-muted-foreground/40">{canonical}</span>
-                      ) : rem === 0 ? (
-                        // Fully distributed
-                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">✓</span>
-                      ) : rem > 0 ? (
-                        // Partial — hours still to distribute
-                        <span className="text-amber-600 dark:text-amber-400">{rem}</span>
+                    <Fragment key={sem}>
+                      {/* Аудиторних Всього — computed display */}
+                      <td className={cn(
+                        'border border-gray-300 px-0.5 py-1.5 text-center font-mono font-semibold align-middle',
+                        isOver ? 'text-red-600 dark:text-red-400' : audTotal > 0 ? 'text-blue-700 dark:text-blue-400' : 'text-gray-300',
+                      )}>
+                        {audTotal > 0 ? audTotal : '—'}
+                      </td>
+                      {d !== undefined ? (
+                        <>
+                          <EditCell value={d.lectureHours} onChange={(v) => setField(term.id, 'lectureHours', v)} onBlur={() => handleBlur(term.id)} disabled={isReadOnly} invalid={isOver} />
+                          <EditCell value={toStr(prac + lab_)} onChange={(v) => { setField(term.id, 'practicalHours', v); setField(term.id, 'labHours', '0') }} onBlur={() => handleBlur(term.id)} disabled={isReadOnly} invalid={isOver} />
+                          <EditCell value={d.seminarHours} onChange={(v) => setField(term.id, 'seminarHours', v)} onBlur={() => handleBlur(term.id)} disabled={isReadOnly} invalid={isOver} />
+                        </>
                       ) : (
-                        // Over canonical
-                        <span className="text-red-600 dark:text-red-400 font-semibold">{rem}</span>
+                        Array.from({ length: 3 }, (_, i) => (
+                          <td key={i} className="border border-gray-300 px-0.5 py-1.5 text-center text-gray-300 align-middle">—</td>
+                        ))
                       )}
-                    </td>
+                      {/* Самостійної Всього — computed display */}
+                      <td className={cn(
+                        'border border-gray-300 px-0.5 py-1.5 text-center font-mono font-semibold align-middle',
+                        srsTotal === 0 ? 'text-gray-300' : '',
+                      )}>
+                        {srsTotal > 0 ? srsTotal : '—'}
+                      </td>
+                      {d !== undefined ? (
+                        <>
+                          <EditCell value={d.independentHours} onChange={(v) => setField(term.id, 'independentHours', v)} onBlur={() => handleBlur(term.id)} disabled={isReadOnly} />
+                          <EditCell value={d.consultationHours} onChange={(v) => setField(term.id, 'consultationHours', v)} onBlur={() => handleBlur(term.id)} disabled={isReadOnly} />
+                        </>
+                      ) : (
+                        Array.from({ length: 2 }, (_, i) => (
+                          <td key={i} className="border border-gray-300 px-0.5 py-1.5 text-center text-gray-300 align-middle">—</td>
+                        ))
+                      )}
+                    </Fragment>
                   )
-                })()}
+                })}
 
-                {/* Weekly lecture hours */}
-                {draft ? (
-                  <>
-                    <EditCell
-                      value={draft.weeklyLectureHours}
-                      onChange={(v) => setField(t.id, 'weeklyLectureHours', v)}
-                      onBlur={() => handleBlur(t.id)}
-                      disabled={isReadOnly}
-                      isDecimal
-                    />
-                    <EditCell
-                      value={draft.weeklyPracticalHours}
-                      onChange={(v) => setField(t.id, 'weeklyPracticalHours', v)}
-                      onBlur={() => handleBlur(t.id)}
-                      disabled={isReadOnly}
-                      isDecimal
-                    />
-                  </>
-                ) : (
-                  <>
-                    <td className="px-1 py-1 text-center text-muted-foreground/40 text-xs">—</td>
-                    <td className="px-1 py-1 text-center text-muted-foreground/40 text-xs">—</td>
-                  </>
-                )}
+                {/* ── Розподіл навч. роботи: Год/тижд per semester ── */}
+                {semesters.map((sem) => {
+                  const term = row.termsBySemester.get(sem)
+                  if (term === undefined) {
+                    return <td key={sem} className="border border-gray-300 px-0.5 py-1.5 text-center text-gray-200 align-middle bg-gray-50/50">—</td>
+                  }
+                  const d = drafts[term.id]
+                  if (d === undefined) {
+                    return <td key={sem} className="border border-gray-300 px-0.5 py-1.5 text-center text-gray-300 align-middle">—</td>
+                  }
+                  return (
+                    <EditCell key={sem} value={d.weeklyLectureHours} onChange={(v) => setField(term.id, 'weeklyLectureHours', v)} onBlur={() => handleBlur(term.id)} disabled={isReadOnly} isDecimal />
+                  )
+                })}
 
-                {/* Status dot */}
-                <td className="px-2 py-1.5 text-center">
-                  <StatusDot status={status} />
+                {/* ── Викладач ── */}
+                <TeacherCell
+                  termIds={allTerms.map((t) => t.id)}
+                  currentTeacher={allTerms[0]?.teacher ?? null}
+                  workingCurriculumId={wc.id}
+                  disabled={isReadOnly}
+                />
+
+                {/* ── Status ── */}
+                <td className="border border-gray-300 px-1 py-1.5 text-center align-middle">
+                  <StatusDot status={rowSt} />
                 </td>
               </tr>
             )
           })}
         </tbody>
 
-        {/* Footer totals */}
         <tfoot>
-          <tr className="border-t-2 border-border bg-muted/40 font-semibold text-sm">
-            <td className="px-3 py-2" colSpan={2}>
-              Всього
+          <tr className="bg-gray-100 font-semibold text-[11px] border-t-2 border-gray-400">
+            <td colSpan={2} className="border border-gray-400 px-1 py-0.5 font-bold">Разом</td>
+            <td colSpan={3} className="border border-gray-400" />
+            <td className="border border-gray-400 p-0 text-center font-mono text-gray-600">
+              {totalEctsAll % 1 === 0 ? String(Math.round(totalEctsAll)) : totalEctsAll.toFixed(1)}
             </td>
-            <td className="px-2 py-2 text-center font-mono text-muted-foreground">
-              {totalCanonical}
-            </td>
-            <td colSpan={3} />
-            <td className="px-1 py-2 text-center font-mono">{totalLecture || '—'}</td>
-            <td className="px-1 py-2 text-center font-mono">{totalPractical || '—'}</td>
-            <td className="px-1 py-2 text-center font-mono">{totalLab || '—'}</td>
-            <td className="px-1 py-2 text-center font-mono">{totalSeminar || '—'}</td>
-            <td className="px-1 py-2 text-center font-mono">{totalIndependent || '—'}</td>
-            <td className="px-1 py-2 text-center font-mono">{totalConsultation || '—'}</td>
-            <td className="px-2 py-2 text-center font-mono font-bold">{totalAll || '—'}</td>
-            {/* Footer remainder: total canonical − total distributed */}
-            <td className="px-2 py-2 text-center font-mono text-xs">
-              {totalAll === 0 ? (
-                <span className="text-muted-foreground/40">{totalCanonical}</span>
-              ) : totalAll === totalCanonical ? (
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">✓</span>
-              ) : totalAll < totalCanonical ? (
-                <span className="text-amber-600 dark:text-amber-400">{totalCanonical - totalAll}</span>
-              ) : (
-                <span className="text-red-600 dark:text-red-400 font-bold">{totalCanonical - totalAll}</span>
-              )}
-            </td>
-            <td colSpan={3} />
+            <td className="border border-gray-400 p-0 text-center font-mono text-gray-600">{totalCanonical}</td>
+            {semesters.map((sem) => {
+              const t = semTotals.get(sem)
+              if (t === undefined) {
+                return (
+                  <Fragment key={sem}>
+                    {Array.from({ length: 7 }, (_, i) => <td key={i} className="border border-gray-400" />)}
+                  </Fragment>
+                )
+              }
+              return (
+                <Fragment key={sem}>
+                  <td className="border border-gray-400 p-0 text-center font-mono font-bold">{t.audTotal || '—'}</td>
+                  <td className="border border-gray-400 p-0 text-center font-mono">{t.lecture || '—'}</td>
+                  <td className="border border-gray-400 p-0 text-center font-mono">{t.practicalLab || '—'}</td>
+                  <td className="border border-gray-400 p-0 text-center font-mono">{t.seminar || '—'}</td>
+                  <td className="border border-gray-400 p-0 text-center font-mono font-bold">{t.srsTotal || '—'}</td>
+                  <td className="border border-gray-400 p-0 text-center font-mono">{t.sprs || '—'}</td>
+                  <td className="border border-gray-400 p-0 text-center font-mono">{t.prep || '—'}</td>
+                </Fragment>
+              )
+            })}
+            <td colSpan={nSems + 2} className="border border-gray-400" />
           </tr>
         </tfoot>
       </table>
@@ -616,53 +787,32 @@ function HourDistributionTable({
   )
 }
 
-// ─── Working curriculum card ──────────────────────────────────────────────────
+// ─── Working plan tab (compact selector) ─────────────────────────────────────
 
-interface WorkingCardProps {
+interface WorkingTabProps {
   wc: WorkingCurriculumSummaryDto
   isSelected: boolean
   onClick: () => void
 }
 
-function WorkingCard({ wc, isSelected, onClick }: WorkingCardProps) {
+function WorkingTab({ wc, isSelected, onClick }: WorkingTabProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        'w-full text-left rounded-lg border px-4 py-3 transition-colors',
+        'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
         isSelected
-          ? 'border-primary bg-primary-light dark:bg-primary-light'
-          : 'border-border hover:border-primary/40 hover:bg-muted/40',
+          ? 'bg-primary text-primary-foreground shadow-sm'
+          : 'text-muted-foreground hover:text-foreground hover:bg-muted',
       )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <CalendarDays size={14} className="text-muted-foreground shrink-0" />
-          <span className="font-mono font-semibold">{wc.academicYear}</span>
-        </div>
-
-        {wc.isApproved ? (
-          <Badge className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-            <CheckCircle size={11} className="mr-1" />
-            Затверджений
-          </Badge>
-        ) : (
-          <Badge className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-            <Clock size={11} className="mr-1" />
-            Чернетка
-          </Badge>
-        )}
-      </div>
-
-      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-        <span>Семестри: {wc.semesterNumbers.join(', ')}</span>
-        <span>·</span>
-        <span className="flex items-center gap-1">
-          <Users size={11} />
-          {wc._count?.groupAssignments ?? 0} груп
-        </span>
-      </div>
+      <span className="font-mono">{wc.academicYear}</span>
+      {wc.isApproved ? (
+        <CheckCircle size={12} className={cn(isSelected ? 'text-primary-foreground/70' : 'text-emerald-500')} />
+      ) : (
+        <Clock size={12} className="opacity-50" />
+      )}
     </button>
   )
 }
@@ -687,172 +837,154 @@ export function WorkingCurriculumPanel({
   const approveWorking = useApproveWorkingCurriculum()
   const deleteWorking = useDeleteWorkingCurriculum()
 
-  // Auto-select first when data loads
   const effectiveSelected = selectedId ?? workingCurricula[0]?.id ?? null
   const selectedWc = workingCurricula.find((w) => w.id === effectiveSelected)
 
-  // After delete: clear selection so auto-select picks next available
   const handleDelete = (id: string) => {
-    deleteWorking.mutate(id, {
-      onSuccess: () => setSelectedId(null),
-    })
+    deleteWorking.mutate(id, { onSuccess: () => setSelectedId(null) })
   }
 
   return (
     <div className="flex flex-col gap-0">
-      {/* Panel header */}
-      <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-4 border-b border-border">
-        <div>
-          <h2 className="font-semibold text-base">Робочі навчальні плани</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {isLoading
-              ? 'Завантаження...'
-              : `${workingCurricula.length} ${workingCurricula.length === 1 ? 'план' : 'плани'}`}
-          </p>
+
+      {/* ── Toolbar row 1: plan tabs + create ── */}
+      <div className="flex flex-wrap items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-muted/20">
+        {/* Plan selector tabs */}
+        <div className="flex items-center gap-1 flex-wrap">
+          {isLoading && (
+            Array.from({ length: 2 }).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-24 rounded-md" />
+            ))
+          )}
+          {!isLoading && workingCurricula.length === 0 && (
+            <span className="text-sm text-muted-foreground">Немає робочих планів</span>
+          )}
+          {!isLoading && workingCurricula.map((wc) => (
+            <WorkingTab
+              key={wc.id}
+              wc={wc}
+              isSelected={effectiveSelected === wc.id}
+              onClick={() => setSelectedId(wc.id)}
+            />
+          ))}
         </div>
 
+        <div className="flex-1" />
+
         {canManage && (
-          <Button size="sm" className="gap-1.5" onClick={() => setDialogOpen(true)}>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setDialogOpen(true)}>
             <Plus size={14} />
-            Новий робочий план
+            Новий план
           </Button>
         )}
       </div>
 
-      <div className="flex flex-col lg:flex-row min-h-[400px]">
-        {/* Left: list of working curricula */}
-        <div className="w-full lg:w-64 shrink-0 border-b lg:border-b-0 lg:border-r border-border p-4 flex flex-col gap-2">
-          {isLoading &&
-            Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 w-full rounded-lg" />
-            ))}
+      {/* ── Toolbar row 2: selected plan info + actions ── */}
+      {effectiveSelected && selectedWc && (
+        <div className="flex flex-wrap items-center gap-3 px-4 sm:px-6 py-2 border-b border-border text-sm">
+          {/* Info */}
+          <span className="text-muted-foreground text-xs">
+            Семестри:&nbsp;{selectedWc.semesterNumbers.join(', ')}
+          </span>
+          <span className="text-border text-xs">·</span>
+          <span className="flex items-center gap-1 text-muted-foreground text-xs">
+            <Users size={11} />
+            {selectedWc.activeGroupCount ?? 0} груп
+          </span>
 
-          {!isLoading && workingCurricula.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
-              <CalendarDays size={32} className="text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">Немає робочих планів</p>
-              {canManage && (
+          <div className="flex-1" />
+
+          {/* Actions */}
+          {canManage && (() => {
+            const isEmpty = selectedWc.isEmpty ?? (selectedWc._count.componentTerms === 0)
+
+            if (selectedWc.isApproved) {
+              return (
+                <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                  <CheckCircle size={13} />
+                  Затверджено
+                </span>
+              )
+            }
+
+            return (
+              <div className="flex items-center gap-2">
                 <Button
-                  variant="outline"
                   size="sm"
-                  onClick={() => setDialogOpen(true)}
-                  className="mt-1 gap-1.5"
+                  variant="outline"
+                  className="gap-1.5"
+                  disabled={approveWorking.isPending || isEmpty}
+                  title={isEmpty ? 'Спочатку внесіть розподіл годин' : undefined}
+                  onClick={() => approveWorking.mutate(effectiveSelected)}
                 >
-                  <Plus size={13} />
-                  Створити
+                  <CheckCircle size={14} />
+                  Затвердити
                 </Button>
-              )}
-            </div>
-          )}
 
-          {!isLoading &&
-            workingCurricula.map((wc) => (
-              <WorkingCard
-                key={wc.id}
-                wc={wc}
-                isSelected={effectiveSelected === wc.id}
-                onClick={() => setSelectedId(wc.id)}
-              />
-            ))}
-        </div>
-
-        {/* Right: detail */}
-        <div className="flex-1 min-w-0">
-          {effectiveSelected ? (
-            <div className="flex flex-col gap-0">
-              {/* Actions bar */}
-              {canManage && (
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/20 flex-wrap">
-                  {/* Approve */}
-                  {selectedWc?.isApproved === false && (() => {
-                    // isEmpty: use backend field if available, fallback to count proxy
-                    const isEmpty = selectedWc.isEmpty ?? (selectedWc._count.componentTerms === 0)
-                    return (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1.5"
-                          disabled={approveWorking.isPending || isEmpty}
-                          title={
-                            isEmpty
-                              ? 'Неможливо затвердити порожній план — спочатку внесіть розподіл годин'
-                              : undefined
-                          }
-                          onClick={() => approveWorking.mutate(effectiveSelected)}
+                {isEmpty && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        disabled={deleteWorking.isPending}
+                      >
+                        <Trash2 size={14} />
+                        Видалити
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Видалити робочий план?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Робочий план за <strong>{selectedWc.academicYear}</strong> буде
+                          безповоротно видалено. Це можливо лише поки план порожній і не
+                          введений в роботу.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Скасувати</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => handleDelete(effectiveSelected)}
                         >
-                          <CheckCircle size={14} />
-                          Затвердити
-                        </Button>
-                        {isEmpty && (
-                          <span className="text-xs text-muted-foreground">
-                            Розподіл годин не внесено
-                          </span>
-                        )}
-                      </div>
-                    )
-                  })()}
-
-                  {/* Approved label */}
-                  {selectedWc?.isApproved && (
-                    <span className="text-xs text-muted-foreground">
-                      Затверджений план — редагування заблоковано
-                    </span>
-                  )}
-
-                  {/* Spacer */}
-                  <div className="flex-1" />
-
-                  {/* Delete — only for empty unapproved plans */}
-                  {selectedWc && !selectedWc.isApproved && (selectedWc.isEmpty ?? (selectedWc._count.componentTerms === 0)) && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          disabled={deleteWorking.isPending}
-                        >
-                          <Trash2 size={14} />
                           Видалити
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Видалити робочий план?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Робочий план за <strong>{selectedWc.academicYear}</strong> буде
-                            безповоротно видалено. Це можливо лише поки план порожній і не
-                            введений в роботу.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Скасувати</AlertDialogCancel>
-                          <AlertDialogAction
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={() => handleDelete(effectiveSelected)}
-                          >
-                            Видалити
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
-                </div>
-              )}
-
-              <HourDistributionTable
-                workingId={effectiveSelected}
-                canEdit={canManage && !(selectedWc?.isApproved ?? false)}
-              />
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-full py-16 text-sm text-muted-foreground">
-              Оберіть робочий план зі списку
-            </div>
-          )}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+            )
+          })()}
         </div>
-      </div>
+      )}
+
+      {/* ── Full-width hour distribution table ── */}
+      {effectiveSelected ? (
+        <HourDistributionTable
+          workingId={effectiveSelected}
+          canEdit={canManage && !(selectedWc?.isApproved ?? false)}
+        />
+      ) : (
+        !isLoading && (
+          <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+            <CalendarDays size={36} className="text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">
+              {workingCurricula.length === 0
+                ? 'Створіть перший робочий план для цієї версії'
+                : 'Оберіть робочий план зі списку'}
+            </p>
+            {canManage && workingCurricula.length === 0 && (
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setDialogOpen(true)}>
+                <Plus size={13} />
+                Створити
+              </Button>
+            )}
+          </div>
+        )
+      )}
 
       <CreateWorkingCurriculumDialog
         open={dialogOpen}

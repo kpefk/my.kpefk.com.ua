@@ -74,7 +74,7 @@ export function CreateCurriculumDialog({ open, onClose }: CreateCurriculumDialog
   const [totalEcts, setTotalEcts] = useState('180')
 
   // Fetch programs when the dialog is open — same pattern as useUnlinkedStudents in CreateUserDialog
-  const { data: programs = [], isFetching: programsLoading } = useEducationalPrograms()
+  const { data: programs = [], isFetching: programsLoading } = useEducationalPrograms(open)
 
   const programOptions = toProgramOptions(programs)
 

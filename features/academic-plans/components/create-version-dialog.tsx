@@ -28,34 +28,22 @@ export function CreateVersionDialog({
   onClose,
   curriculumId,
 }: CreateVersionDialogProps) {
-  const [approvalDate, setApprovalDate] = useState('')
-  const [approvalOrderNumber, setApprovalOrderNumber] = useState('')
-  const [approvedBy, setApprovedBy] = useState('')
   const [notes, setNotes] = useState('')
 
   const createVersion = useCreateVersion()
 
   useEffect(() => {
     if (open) {
-      setApprovalDate(new Date().toISOString().slice(0, 10))
-      setApprovalOrderNumber('')
-      setApprovedBy('')
       setNotes('')
     }
   }, [open])
 
-  const isValid = approvalDate !== '' && approvalOrderNumber.trim() !== '' && approvedBy.trim() !== ''
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isValid) return
     createVersion.mutate(
       {
         curriculumId,
         data: {
-          approvalDate,
-          approvalOrderNumber: approvalOrderNumber.trim(),
-          approvedBy: approvedBy.trim(),
           notes: notes.trim() || undefined,
         },
       },
@@ -75,48 +63,6 @@ export function CreateVersionDialog({
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
           <Field>
-            <FieldLabel htmlFor="cv-date">
-              Дата затвердження <span className="text-destructive">*</span>
-            </FieldLabel>
-            <Input
-              id="cv-date"
-              type="date"
-              required
-              value={approvalDate}
-              onChange={(e) => setApprovalDate(e.target.value)}
-              className="bg-background"
-            />
-          </Field>
-
-          <Field>
-            <FieldLabel htmlFor="cv-order">
-              Номер наказу / протоколу <span className="text-destructive">*</span>
-            </FieldLabel>
-            <Input
-              id="cv-order"
-              placeholder="Протокол № 6 від 26.05.2025"
-              required
-              value={approvalOrderNumber}
-              onChange={(e) => setApprovalOrderNumber(e.target.value)}
-              className="bg-background"
-            />
-          </Field>
-
-          <Field>
-            <FieldLabel htmlFor="cv-approved-by">
-              Затверджено ким <span className="text-destructive">*</span>
-            </FieldLabel>
-            <Input
-              id="cv-approved-by"
-              placeholder="Директор Т. Селівончик"
-              required
-              value={approvedBy}
-              onChange={(e) => setApprovedBy(e.target.value)}
-              className="bg-background"
-            />
-          </Field>
-
-          <Field>
             <FieldLabel htmlFor="cv-notes">Примітки</FieldLabel>
             <Input
               id="cv-notes"
@@ -131,7 +77,7 @@ export function CreateVersionDialog({
             <Button type="button" variant="outline" onClick={onClose}>
               Скасувати
             </Button>
-            <Button type="submit" disabled={!isValid || createVersion.isPending}>
+            <Button type="submit" disabled={createVersion.isPending}>
               {createVersion.isPending ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (

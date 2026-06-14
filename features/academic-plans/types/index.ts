@@ -112,9 +112,9 @@ export interface CurriculumListItemDto {
 export interface CurriculumVersionSummaryDto {
   id: string
   versionNumber: number
-  approvalDate: string
-  approvalOrderNumber: string
-  approvedBy: string
+  approvalDate: string | null
+  approvalOrderNumber: string | null
+  approvedBy: string | null
   isPublished: boolean
   publishedAt: string | null
   deprecatedAt: string | null
@@ -127,9 +127,9 @@ export interface CurriculumVersionDetailDto {
   curriculumId: string
   curriculum: CurriculumListItemDto
   versionNumber: number
-  approvalDate: string
-  approvalOrderNumber: string
-  approvedBy: string
+  approvalDate: string | null
+  approvalOrderNumber: string | null
+  approvedBy: string | null
   isPublished: boolean
   publishedAt: string | null
   deprecatedAt: string | null
@@ -259,7 +259,7 @@ export interface GroupCurriculumAssignmentDto {
   version: {
     id: string
     versionNumber: number
-    approvalDate: string
+    approvalDate: string | null
     isPublished: boolean
   }
   effectiveFrom: string
@@ -301,14 +301,17 @@ export interface WorkingCurriculumSummaryDto {
    * Обчислюється на backend; може бути відсутнє у старих відповідях.
    */
   isEmpty?: boolean
-  _count: { groupAssignments: number; componentTerms: number }
+  /** Кількість активних нормативних призначень груп до версії цього плану. */
+  activeGroupCount: number
+  _count: { componentTerms: number }
   createdAt: string
   updatedAt: string
 }
 
 export interface WorkingCurriculumDetailDto extends WorkingCurriculumSummaryDto {
   componentTerms: WorkingComponentTermDto[]
-  groupAssignments: { group: { id: string; name: string }; academicYear: string; isActive: boolean }[]
+  /** Групи з активним нормативним призначенням до цієї версії плану. */
+  activeGroups: { id: string; group: { id: string; name: string }; effectiveFrom: string }[]
 }
 
 export interface WorkingComponentTermDto {
@@ -331,6 +334,9 @@ export interface WorkingComponentTermDto {
   consultationHours: number
   weeklyLectureHours: string | null
   weeklyPracticalHours: string | null
+  /** null — викладач не призначений */
+  teacherId: string | null
+  teacher: { id: string; firstName: string; lastName: string; middleName: string | null } | null
 }
 
 // ─── Filters ──────────────────────────────────────────────────────────────────

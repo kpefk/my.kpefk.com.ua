@@ -82,15 +82,6 @@ function VersionRow({
         )}
       </div>
 
-      {/* Approval info */}
-      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground flex-1 min-w-0">
-        <span className="truncate">{version.approvalOrderNumber || '—'}</span>
-        <span>·</span>
-        <span className="whitespace-nowrap">{formatDate(version.approvalDate)}</span>
-        <span>·</span>
-        <span className="truncate">{version.approvedBy}</span>
-      </div>
-
       {/* Actions */}
       <div className="flex items-center gap-2 shrink-0">
         <Button variant="ghost" size="sm" className="gap-1 text-xs h-8 px-3" asChild>

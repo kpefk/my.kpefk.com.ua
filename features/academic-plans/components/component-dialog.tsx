@@ -32,6 +32,7 @@ import {
   type CurriculumComponentDto,
   type CurriculumComponentKind,
   type CurriculumSectionType,
+  type ElectiveBlockDto,
   type PracticeType,
 } from '../types'
 
@@ -81,6 +82,8 @@ interface ComponentDialogProps {
    */
   suggestedCode?: string
   initialData?: CurriculumComponentDto
+  /** Elective blocks in the same section — shown as selector when componentKind = ELECTIVE_GROUP */
+  electiveBlocks?: ElectiveBlockDto[]
   onSubmit: (data: {
     name: string
     code?: string | null
@@ -102,6 +105,7 @@ interface ComponentDialogProps {
     znoPreparationHours?: number
     // Elective group
     groupCode?: string
+    electiveBlockId?: string | null
   }) => void
   isPending: boolean
 }
@@ -116,10 +120,12 @@ export function ComponentDialog({
   defaultOrderIndex,
   suggestedCode,
   initialData,
+  electiveBlocks = [],
   onSubmit,
   isPending,
 }: ComponentDialogProps) {
   const isSecondaryEdu = sectionType ? isSecondaryEducationSection(sectionType) : false
+  const isElectiveSection = sectionType === 'ELECTIVE'
 
   // ── Section 1: basics ──────────────────────────────────────────────────────
   const [name, setName] = useState(initialData?.name ?? '')
@@ -128,7 +134,7 @@ export function ComponentDialog({
     initialData?.componentType ?? 'DISCIPLINE',
   )
   const [componentKind, setComponentKind] = useState<CurriculumComponentKind>(
-    initialData?.componentKind ?? 'REGULAR',
+    initialData?.componentKind ?? (isElectiveSection ? 'ELECTIVE_GROUP' : 'REGULAR'),
   )
   const [totalEcts, setTotalEcts] = useState(
     initialData ? String(Number(initialData.totalEcts)) : '',
@@ -141,6 +147,7 @@ export function ComponentDialog({
     initialData?.practiceType ?? '',
   )
   const [groupCode, setGroupCode] = useState(initialData?.groupCode ?? '')
+  const [electiveBlockId, setElectiveBlockId] = useState<string>(initialData?.electiveBlockId ?? '')
 
   // ── Section 2: hours breakdown ─────────────────────────────────────────────
   const [auditoryHours, setAuditoryHours] = useState(String(initialData?.auditoryHours ?? ''))
@@ -158,7 +165,7 @@ export function ComponentDialog({
       // Edit mode: restore saved code. Create mode: use suggestion if provided.
       setCode(initialData?.code ?? suggestedCode ?? '')
       setComponentType(initialData?.componentType ?? 'DISCIPLINE')
-      setComponentKind(initialData?.componentKind ?? 'REGULAR')
+      setComponentKind(initialData?.componentKind ?? (isElectiveSection ? 'ELECTIVE_GROUP' : 'REGULAR'))
       const ects = initialData ? Number(initialData.totalEcts) : NaN
       setTotalEcts(initialData ? String(ects) : '')
       // Auto-derive hours; for secondary-edu components use the stored value
@@ -172,6 +179,7 @@ export function ComponentDialog({
       setIsMandatory(initialData?.isMandatory ?? true)
       setPracticeType(initialData?.practiceType ?? '')
       setGroupCode(initialData?.groupCode ?? '')
+      setElectiveBlockId(initialData?.electiveBlockId ?? '')
       setAuditoryHours(String(initialData?.auditoryHours ?? ''))
       setLectureHours(String(initialData?.lectureHours ?? ''))
       setPracticalHours(String(initialData?.practicalHours ?? ''))
@@ -192,7 +200,8 @@ export function ComponentDialog({
   const canSubmit =
     name.trim().length >= 2 &&
     ectsValid &&
-    (isSecondaryEdu ? Number.isFinite(hoursVal) && hoursVal >= 0 : true)
+    (isSecondaryEdu ? Number.isFinite(hoursVal) && hoursVal >= 0 : true) &&
+    (isElectiveSection ? !!electiveBlockId : true)
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const toOptInt = (s: string): number | undefined => {
@@ -236,6 +245,7 @@ export function ComponentDialog({
       znoPreparationHours: isSecondaryEdu ? toOptInt(znoHours) : undefined,
       // Elective group
       groupCode: groupCode.trim() || undefined,
+      electiveBlockId: componentKind === 'ELECTIVE_GROUP' ? (electiveBlockId || null) : null,
     })
   }
 
@@ -267,7 +277,7 @@ export function ComponentDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className={isElectiveSection ? 'flex flex-col gap-1.5' : 'grid grid-cols-2 gap-3'}>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="comp-code">Код компонента</Label>
                 <Input
@@ -279,63 +289,114 @@ export function ComponentDialog({
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="comp-group-code">Код групи (вибіркові)</Label>
-                <Input
-                  id="comp-group-code"
-                  value={groupCode}
-                  onChange={(e) => setGroupCode(e.target.value)}
-                  placeholder="ВК1"
-                  maxLength={20}
-                />
-              </div>
+              {!isElectiveSection && (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="comp-group-code">Код групи (вибіркові)</Label>
+                  <Input
+                    id="comp-group-code"
+                    value={groupCode}
+                    onChange={(e) => setGroupCode(e.target.value)}
+                    placeholder="ВК1"
+                    maxLength={20}
+                  />
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            {isElectiveSection ? (
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="comp-kind">Категорія *</Label>
+                <Label htmlFor="comp-elective-block">Блок ВК *</Label>
                 <Select
-                  value={componentKind}
-                  onValueChange={(v) => setComponentKind(v as CurriculumComponentKind)}
+                  value={electiveBlockId || '__none__'}
+                  onValueChange={(v) => setElectiveBlockId(v === '__none__' ? '' : v)}
                 >
-                  <SelectTrigger id="comp-kind">
-                    <SelectValue />
+                  <SelectTrigger id="comp-elective-block">
+                    <SelectValue placeholder="Оберіть блок..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {(Object.entries(COMPONENT_KIND_LABELS) as [CurriculumComponentKind, string][]).map(
-                      ([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ),
-                    )}
+                    <SelectItem value="__none__">— Оберіть блок —</SelectItem>
+                    {electiveBlocks.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.name} (С{b.semesterNumber})
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+                {electiveBlocks.length === 0 && (
+                  <p className="text-xs text-destructive">Спочатку додайте блок ВК до розділу.</p>
+                )}
               </div>
+            ) : (
+              <>
+                {componentKind === 'ELECTIVE_GROUP' && (
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="comp-elective-block">Блок ВК (прив'язка)</Label>
+                    <Select
+                      value={electiveBlockId || '__none__'}
+                      onValueChange={(v) => setElectiveBlockId(v === '__none__' ? '' : v)}
+                    >
+                      <SelectTrigger id="comp-elective-block">
+                        <SelectValue placeholder="Не прив'язано" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— Не прив'язано —</SelectItem>
+                        {electiveBlocks.map((b) => (
+                          <SelectItem key={b.id} value={b.id}>
+                            {b.name} (С{b.semesterNumber})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="comp-type">Тип (деталізований)</Label>
-                <Select
-                  value={componentType}
-                  onValueChange={(v) => setComponentType(v as ComponentType)}
-                >
-                  <SelectTrigger id="comp-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Object.entries(COMPONENT_TYPE_LABELS) as [ComponentType, string][]).map(
-                      ([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ),
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="comp-kind">Категорія *</Label>
+                    <Select
+                      value={componentKind}
+                      onValueChange={(v) => setComponentKind(v as CurriculumComponentKind)}
+                    >
+                      <SelectTrigger id="comp-kind">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.entries(COMPONENT_KIND_LABELS) as [CurriculumComponentKind, string][]).map(
+                          ([value, label]) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          ),
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-            {componentType === 'PRACTICE' && (
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="comp-type">Тип (деталізований)</Label>
+                    <Select
+                      value={componentType}
+                      onValueChange={(v) => setComponentType(v as ComponentType)}
+                    >
+                      <SelectTrigger id="comp-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.entries(COMPONENT_TYPE_LABELS) as [ComponentType, string][]).map(
+                          ([value, label]) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          ),
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {!isElectiveSection && componentType === 'PRACTICE' && (
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="practice-type">Вид практики</Label>
                 <Select
@@ -411,16 +472,18 @@ export function ComponentDialog({
               </p>
             )}
 
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="comp-mandatory"
-                checked={isMandatory}
-                onCheckedChange={(v) => setIsMandatory(!!v)}
-              />
-              <Label htmlFor="comp-mandatory" className="cursor-pointer font-normal">
-                Обов&#39;язковий компонент
-              </Label>
-            </div>
+            {!isElectiveSection && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="comp-mandatory"
+                  checked={isMandatory}
+                  onCheckedChange={(v) => setIsMandatory(!!v)}
+                />
+                <Label htmlFor="comp-mandatory" className="cursor-pointer font-normal">
+                  Обов&#39;язковий компонент
+                </Label>
+              </div>
+            )}
           </div>
 
           {/* ── SECTION 2: Розподіл годин ─────────────────────────────────── */}

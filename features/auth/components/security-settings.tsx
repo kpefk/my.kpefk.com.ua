@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Eye, EyeOff, Loader2, Mail, Shield, ShieldCheck, ShieldOff, Smartphone } from 'lucide-react'
+import { AtSign, Eye, EyeOff, Loader2, Mail, Shield, ShieldCheck, ShieldOff, Smartphone } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/store/auth.store'
 
-import { useChangePassword, useEmailEnable2FA, useGet2FAStatus } from '../api/security'
+import { useChangePassword, useEmailEnable2FA, useGet2FAStatus, useRequestEmailChange } from '../api/security'
 import { Disable2FADialog } from './disable-2fa-dialog'
 import { TotpSetupDialog } from './totp-setup-dialog'
 
@@ -195,11 +196,103 @@ function ChangePasswordForm() {
   )
 }
 
+// ─── Change email ─────────────────────────────────────────────────────────────
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function ChangeEmailForm({ currentEmail }: { currentEmail?: string }) {
+  const [newEmail, setNewEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const requestEmailChange = useRequestEmailChange()
+
+  const trimmed = newEmail.trim().toLowerCase()
+  const invalidFormat = trimmed.length > 0 && !EMAIL_RE.test(trimmed)
+  const sameAsCurrent =
+    !!currentEmail && trimmed === currentEmail.trim().toLowerCase()
+  const canSubmit =
+    EMAIL_RE.test(trimmed) && !sameAsCurrent && password.length >= 1
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!canSubmit) return
+    requestEmailChange.mutate(
+      { newEmail: trimmed, password },
+      {
+        onSuccess: () => {
+          setNewEmail('')
+          setPassword('')
+        },
+      }
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      {currentEmail && (
+        <p className="text-xs text-muted-foreground">
+          Поточна адреса: <span className="font-medium text-foreground">{currentEmail}</span>
+        </p>
+      )}
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="new-email" className={cn((invalidFormat || sameAsCurrent) && 'text-destructive')}>
+          Нова email-адреса
+        </Label>
+        <Input
+          id="new-email"
+          type="email"
+          value={newEmail}
+          onChange={(e) => setNewEmail(e.target.value)}
+          autoComplete="email"
+          placeholder="new@kpefk.com.ua"
+          className={cn((invalidFormat || sameAsCurrent) && 'border-destructive focus-visible:ring-destructive')}
+        />
+        {invalidFormat && <p className="text-xs text-destructive">Некоректний формат email</p>}
+        {sameAsCurrent && <p className="text-xs text-destructive">Це ваша поточна адреса</p>}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="email-pass">Поточний пароль <span className="text-muted-foreground text-xs">(для підтвердження)</span></Label>
+        <div className="relative">
+          <Input
+            id="email-pass"
+            type={showPassword ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            className="pr-10"
+          />
+          <button
+            type="button"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            onClick={() => setShowPassword((v) => !v)}
+          >
+            {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+          </button>
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        На нову адресу буде надіслано лист із посиланням для підтвердження. Адреса
+        зміниться лише після переходу за посиланням.
+      </p>
+
+      <div className="flex justify-end mt-1">
+        <Button type="submit" size="sm" disabled={!canSubmit || requestEmailChange.isPending}>
+          {requestEmailChange.isPending ? <Loader2 size={13} className="animate-spin" /> : 'Змінити email'}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function SecuritySettings() {
   const { data: status, isLoading } = useGet2FAStatus()
   const emailEnable = useEmailEnable2FA()
+  const currentEmail = useAuthStore((s) => s.user?.email)
 
   const [totpSetupOpen, setTotpSetupOpen] = useState(false)
   const [disableOpen, setDisableOpen] = useState(false)
@@ -218,6 +311,17 @@ export function SecuritySettings() {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Зміна пароля</h2>
         </div>
         <ChangePasswordForm />
+      </section>
+
+      <Separator />
+
+      {/* ── Change email ─────────────────────────────────────────────── */}
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <AtSign size={14} className="text-muted-foreground" />
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Зміна email</h2>
+        </div>
+        <ChangeEmailForm currentEmail={currentEmail} />
       </section>
 
       <Separator />

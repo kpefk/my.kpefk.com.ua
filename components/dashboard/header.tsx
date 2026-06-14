@@ -125,7 +125,7 @@ export function Header({ user, onMenuClick }: HeaderProps) {
                 <p className="text-sm font-medium text-foreground truncate max-w-[180px]">
                   {user.name}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-left text-muted-foreground">
                   {user.subtitle}
                 </p>
               </div>
@@ -138,12 +138,7 @@ export function Header({ user, onMenuClick }: HeaderProps) {
           </button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuLabel className="font-normal">
-            <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
-            <p className="text-xs text-muted-foreground">{user.subtitle}</p>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
+        <DropdownMenuContent align="end" >
           <DropdownMenuItem asChild>
             <Link href="/profile" className="flex items-center gap-2">
               <User className="w-4 h-4" />

@@ -11,6 +11,7 @@ import type {
   ComponentType,
   ControlForm,
   CurriculumComponentDto,
+  CurriculumComponentKind,
   CurriculumComponentTermDto,
   CurriculumFilters,
   CurriculumListItemDto,
@@ -19,6 +20,7 @@ import type {
   CurriculumVersionDetailDto,
   CurriculumVersionSummaryDto,
   EducationalProgramDto,
+  ElectiveBlockDto,
   GroupCurriculumAssignmentDto,
   PracticeType,
   SpecialtyDto,
@@ -56,13 +58,16 @@ export function useSpecialties() {
   })
 }
 
-export function useEducationalPrograms(specialtyId?: string) {
+export function useEducationalPrograms(enabled: boolean | string = true) {
+  const specialtyId = typeof enabled === 'string' ? enabled : undefined
+  const isEnabled = typeof enabled === 'boolean' ? enabled : true
   const url = specialtyId
     ? `${ENDPOINTS.CURRICULUM.PROGRAMS}?specialtyId=${specialtyId}`
     : ENDPOINTS.CURRICULUM.PROGRAMS
   return useQuery({
     queryKey: ['educational-programs', specialtyId ?? 'all'],
     queryFn: () => apiGet<EducationalProgramDto[]>(url),
+    enabled: isEnabled,
     staleTime: 5 * 60_000,
   })
 }
@@ -168,9 +173,6 @@ export function useCreateVersion() {
     }: {
       curriculumId: string
       data: {
-        approvalDate: string
-        approvalOrderNumber: string
-        approvedBy: string
         notes?: string
       }
     }) =>
@@ -426,6 +428,8 @@ export function useUpdateWorkingComponentTerm() {
         consultationHours: number
         weeklyLectureHours: number | null
         weeklyPracticalHours: number | null
+        /** undefined = не чіпати поточне призначення; null = зняти; string = призначити */
+        teacherId?: string | null
       }
     }) =>
       apiPatch<WorkingComponentTermDto>(
@@ -449,6 +453,46 @@ export function useUpdateWorkingComponentTerm() {
     },
     onError: (error: unknown) => {
       const msg = error instanceof ApiError ? error.message : 'Помилка збереження розподілу'
+      toast.error(msg)
+    },
+  })
+}
+
+/**
+ * Призначає або знімає викладача з конкретного WorkingCurriculumComponentTerm.
+ * Надсилає лише teacherId — інші поля терму не зачіпаються (PATCH).
+ */
+export function useAssignTeacherToTerm() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      termId,
+      teacherId,
+    }: {
+      termId: string
+      workingCurriculumId: string
+      teacherId: string | null
+    }) =>
+      apiPatch<WorkingComponentTermDto>(
+        ENDPOINTS.CURRICULUM.WORKING_COMPONENT_TERM(termId),
+        { teacherId },
+      ),
+    onSuccess: (updatedTerm, { workingCurriculumId }) => {
+      queryClient.setQueryData<WorkingCurriculumDetailDto | undefined>(
+        curriculumKeys.workingCurriculum(workingCurriculumId),
+        (old) => {
+          if (!old) return old
+          return {
+            ...old,
+            componentTerms: old.componentTerms.map((t) =>
+              t.id === updatedTerm.id ? updatedTerm : t,
+            ),
+          }
+        },
+      )
+    },
+    onError: (error: unknown) => {
+      const msg = error instanceof ApiError ? error.message : 'Помилка призначення викладача'
       toast.error(msg)
     },
   })
@@ -532,6 +576,50 @@ export function useDeleteSection() {
   })
 }
 
+export function useCreateElectiveBlock() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      sectionId,
+      data,
+    }: {
+      sectionId: string
+      versionId: string
+      data: {
+        name: string
+        semesterNumber: number
+        minSelections: number
+        maxSelections: number
+        orderIndex: number
+      }
+    }) => apiPost<ElectiveBlockDto>(ENDPOINTS.CURRICULUM.ELECTIVE_BLOCKS(sectionId), data),
+    onSuccess: (_data, { versionId }) => {
+      queryClient.invalidateQueries({ queryKey: curriculumKeys.version(versionId) })
+      toast.success('Блок ВК додано')
+    },
+    onError: (error: unknown) => {
+      const msg = error instanceof ApiError ? error.message : 'Помилка додавання блоку ВК'
+      toast.error(msg)
+    },
+  })
+}
+
+export function useDeleteElectiveBlock() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id }: { id: string; versionId: string }) =>
+      apiDelete(ENDPOINTS.CURRICULUM.ELECTIVE_BLOCK(id)),
+    onSuccess: (_data, { versionId }) => {
+      queryClient.invalidateQueries({ queryKey: curriculumKeys.version(versionId) })
+      toast.success('Блок ВК видалено')
+    },
+    onError: (error: unknown) => {
+      const msg = error instanceof ApiError ? error.message : 'Помилка видалення блоку ВК'
+      toast.error(msg)
+    },
+  })
+}
+
 export function useCreateComponent() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -544,12 +632,14 @@ export function useCreateComponent() {
       data: {
         name: string
         componentType: ComponentType
+        componentKind?: CurriculumComponentKind
         code?: string | null
         totalEcts: number
         totalHours: number
         orderIndex: number
         isMandatory?: boolean
         practiceType?: PracticeType
+        electiveBlockId?: string | null
       }
     }) => apiPost<CurriculumComponentDto>(ENDPOINTS.CURRICULUM.COMPONENTS(sectionId), data),
     onSuccess: (_data, { versionId }) => {
@@ -575,11 +665,13 @@ export function useUpdateComponent() {
       data: Partial<{
         name: string
         componentType: ComponentType
+        componentKind: CurriculumComponentKind
         code: string | null
         totalEcts: number
         totalHours: number
         isMandatory: boolean
         practiceType: PracticeType
+        electiveBlockId: string | null
       }>
     }) => apiPatch<CurriculumComponentDto>(ENDPOINTS.CURRICULUM.COMPONENT(componentId), data),
     onSuccess: (_data, { versionId }) => {

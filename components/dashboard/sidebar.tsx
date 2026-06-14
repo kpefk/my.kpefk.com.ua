@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   BookMarked,
+  BookOpenCheck,
   Calendar,
   ClipboardList,
   DoorOpen,       // Мій кабінет
@@ -13,7 +14,6 @@ import {
   LayoutDashboard,
   Library,        // Навчальні плани
   School,         // Навчальні кабінети (адмін)
-  Settings,
   UserCheck,
   UserCog,        // Список викладачів
   Users,          // Моя група / Навчальні групи
@@ -27,7 +27,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Головна" },
 
   // Для студентів
-  { href: "/elective-courses", icon: BookMarked,    label: "Вибіркові дисципліни" },
+  { href: "/electives", icon: BookMarked, label: "Вибіркові дисципліни" },
   { href: "/schedule",         icon: Calendar,      label: "Розклад занять" },
   { href: "/grades",           icon: BarChart3,     label: "Успішність" },
   { href: "/assignments",      icon: ClipboardList, label: "Завдання" },
@@ -38,19 +38,17 @@ const NAV_ITEMS = [
   { href: "/my-classroom", icon: DoorOpen, label: "Мій кабінет" },      // тільки завідувач кабінету
 
   // Для заступника директора
-  { href: "/academic-plans",  icon: Library, label: "Навчальні плани" },
-  { href: "/academic-groups", icon: Users,   label: "Навчальні групи" },
+  { href: "/academic-plans",  icon: Library,        label: "Навчальні плани" },
+  { href: "/teacher-load",    icon: BookOpenCheck,  label: "Педагогічне навантаження" },
+  { href: "/academic-groups", icon: Users,          label: "Навчальні групи" },
 
   // Для адміністраторів
+  { href: "/electives/admin", icon: BookMarked, label: "ВК — адміністрування" },
   { href: "/classrooms", icon: School, label: "Навчальні кабінети" },
   { href: "/educational-programs", icon: BookMarked, label: "Список ОПП" },
   { href: "/users", icon: UserSearch, label: "Список користувачів" },
   { href: "/students", icon: GraduationCap, label: "Список студентів" },
   { href: "/teachers", icon: UserCog, label: "Список викладачів" },
-];
-
-const BOTTOM_ITEMS = [
-  { href: "/settings", icon: Settings, label: "Налаштування" },
 ];
 
 interface SidebarProps {
@@ -97,7 +95,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
       </div>
 
       {/* Main nav */}
-      <nav className="flex-1 py-4 px-2 space-y-0.5">
+      <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5 scrollbar-none">
         {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
           const active = pathname === href;
           return (
