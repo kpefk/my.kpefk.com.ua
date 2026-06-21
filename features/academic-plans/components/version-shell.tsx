@@ -6,6 +6,7 @@ import { ArrowLeft, BookText, CalendarDays, GitBranch, Layers } from 'lucide-rea
 
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ElectiveThresholdBadge } from '@/features/individual-plans/components/ElectiveThresholdBadge'
 import { cn } from '@/lib/utils'
 
 import { formatDate, type CurriculumVersionDetailDto } from '../types'
@@ -80,6 +81,7 @@ export function VersionShell({
                   Чернетка
                 </Badge>
               )}
+              <ElectiveThresholdBadge versionId={version.id} />
             </div>
           </div>
         ) : null}

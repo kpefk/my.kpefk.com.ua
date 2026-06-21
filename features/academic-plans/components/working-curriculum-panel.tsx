@@ -20,15 +20,12 @@ import { cn } from '@/lib/utils'
 
 import {
   useApproveWorkingCurriculum,
-  useAssignTeacherToTerm,
   useDeleteWorkingCurriculum,
   useInitializeWorkingCurriculumTerms,
   useUpdateWorkingComponentTerm,
   useWorkingCurriculum,
   useWorkingCurricula,
 } from '../api'
-import { useTeachers } from '../../teachers/api'
-import { DEFAULT_FILTERS } from '../../teachers/types'
 import {
   COMPONENT_TYPE_LABELS,
   type ComponentType,
@@ -128,7 +125,7 @@ interface EditCellProps {
 
 function EditCell({ value, onChange, onBlur, disabled, invalid = false, isDecimal = false }: EditCellProps) {
   return (
-    <td className={cn('border border-gray-300 p-0 text-center align-middle', invalid && 'bg-red-50/40 dark:bg-red-950/10')}>
+    <td className={cn('border border-border p-0 text-center align-middle', invalid && 'bg-red-50/40 dark:bg-red-950/10')}>
       <input
         type={isDecimal ? 'text' : 'number'}
         inputMode={isDecimal ? 'decimal' : 'numeric'}
@@ -145,123 +142,6 @@ function EditCell({ value, onChange, onBlur, disabled, invalid = false, isDecima
           invalid && 'text-red-600 dark:text-red-400',
         )}
       />
-    </td>
-  )
-}
-
-// ─── Teacher cell (per-component row) ────────────────────────────────────────
-
-/**
- * Клітинка вибору викладача для рядка компонента.
- * Показує прізвище+ініціали або "—". При натисканні відкриває пошук.
- * Використовує перший термін компонента для запису (teacherId однаковий для всіх термів компонента;
- * якщо ні — показує перший знайдений).
- */
-function TeacherCell({
-  termIds,
-  currentTeacher,
-  workingCurriculumId,
-  disabled,
-}: {
-  termIds: string[]          // всі term.id компонента (для масового оновлення)
-  currentTeacher: { id: string; firstName: string; lastName: string; middleName: string | null } | null
-  workingCurriculumId: string
-  disabled: boolean
-}) {
-  const [open, setOpen] = useState(false)
-  const [search, setSearch] = useState('')
-  const assign = useAssignTeacherToTerm()
-  const { data: teachers } = useTeachers(DEFAULT_FILTERS)
-
-  const filtered = (teachers ?? []).filter((t) => {
-    if (!search.trim()) return true
-    const q = search.toLowerCase()
-    return (
-      t.lastName.toLowerCase().includes(q) ||
-      t.firstName.toLowerCase().includes(q) ||
-      (t.middleName ?? '').toLowerCase().includes(q)
-    )
-  }).slice(0, 20)
-
-  function shortName(t: { firstName: string; lastName: string; middleName: string | null }): string {
-    const i = t.firstName[0] ?? ''
-    const p = t.middleName?.[0] ?? ''
-    return `${t.lastName} ${i}.${p ? `${p}.` : ''}`
-  }
-
-  function handleSelect(teacherId: string | null) {
-    const firstId = termIds[0]
-    if (firstId === undefined) return
-    assign.mutate({ termId: firstId, workingCurriculumId, teacherId })
-    setOpen(false)
-    setSearch('')
-  }
-
-  if (disabled) {
-    return (
-      <td className="border border-gray-300 px-1 py-1.5 text-center align-middle text-[10px] text-gray-600 whitespace-nowrap">
-        {currentTeacher !== null ? shortName(currentTeacher) : '—'}
-      </td>
-    )
-  }
-
-  return (
-    <td className="border border-gray-300 px-0.5 py-1 align-middle relative">
-      <button
-        type="button"
-        onClick={() => { setOpen((v) => !v); setSearch('') }}
-        className={cn(
-          'w-full text-left text-[10px] px-1 py-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800',
-          currentTeacher !== null ? 'text-gray-800 dark:text-gray-200' : 'text-gray-400 italic',
-        )}
-      >
-        {currentTeacher !== null ? shortName(currentTeacher) : 'призначити…'}
-      </button>
-
-      {open && (
-        <div className="absolute z-50 top-full left-0 mt-0.5 w-56 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded shadow-lg text-[11px]">
-          <div className="p-1 border-b border-gray-200 dark:border-gray-700">
-            <input
-              autoFocus
-              type="text"
-              placeholder="Пошук…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-1.5 py-0.5 text-[11px] border border-gray-300 dark:border-gray-600 rounded bg-transparent outline-none focus:ring-1 focus:ring-blue-400"
-            />
-          </div>
-          <ul className="max-h-48 overflow-y-auto">
-            {currentTeacher !== null && (
-              <li>
-                <button
-                  type="button"
-                  onClick={() => handleSelect(null)}
-                  className="w-full text-left px-2 py-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
-                >
-                  Зняти призначення
-                </button>
-              </li>
-            )}
-            {filtered.length === 0 && (
-              <li className="px-2 py-1 text-gray-400 italic">Нікого не знайдено</li>
-            )}
-            {filtered.map((t) => (
-              <li key={t.id}>
-                <button
-                  type="button"
-                  onClick={() => handleSelect(t.id)}
-                  className={cn(
-                    'w-full text-left px-2 py-1 hover:bg-blue-50 dark:hover:bg-blue-950/20',
-                    currentTeacher?.id === t.id && 'font-semibold bg-blue-50/50 dark:bg-blue-950/10',
-                  )}
-                >
-                  {shortName(t)}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </td>
   )
 }
@@ -482,13 +362,13 @@ function HourDistributionTable({
   return (
     <div className="relative overflow-x-auto">
       {updateTerm.isPending && (
-        <div className="absolute top-1 right-2 text-[10px] text-gray-500 animate-pulse z-10">
+        <div className="absolute top-1 right-2 text-[10px] text-muted-foreground animate-pulse z-10">
           Збереження…
         </div>
       )}
 
       {!isReadOnly && (
-        <div className="flex items-center gap-3 px-3 py-1 border-b border-gray-300 bg-gray-50 text-[10px] text-gray-500">
+        <div className="flex items-center gap-3 px-3 py-1 border-b border-border bg-muted/40 text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1"><StatusDot status="complete" /> Заповнено</span>
           <span className="flex items-center gap-1"><StatusDot status="partial" /> Частково</span>
           <span className="flex items-center gap-1"><StatusDot status="error" /> Перевищено</span>
@@ -504,52 +384,49 @@ function HourDistributionTable({
         Total: 8 + 9n
       */}
       <table className="w-full text-[11px] border-collapse">
-        <thead className="text-center text-[10px] font-semibold bg-gray-100">
+        <thead className="text-center text-[10px] font-semibold bg-muted">
 
           {/* ── Row 1: top-level group headers ── */}
           <tr>
-            <th rowSpan={3} className="border border-gray-400 px-0.5 py-0.5 align-middle w-10">
+            <th rowSpan={3} className="border border-border px-0.5 py-0.5 align-middle w-10">
               Код
             </th>
-            <th rowSpan={3} className="border border-gray-400 px-1 py-0.5 text-left align-middle min-w-[120px] w-[120px]">
+            <th rowSpan={3} className="border border-border px-1 py-0.5 text-left align-middle min-w-[120px] w-[120px]">
               Назва освітнього компонента /<br />навчального предмета
             </th>
-            <th colSpan={3} className="border border-gray-400 px-0.5 py-0.5 leading-tight">
+            <th colSpan={3} className="border border-border px-0.5 py-0.5 leading-tight">
               Розподіл за<br />семестрами
             </th>
-            <th rowSpan={3} className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 whitespace-nowrap">
+            <th rowSpan={3} className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 whitespace-nowrap">
               Кредити ЄКТС
             </th>
-            <th rowSpan={3} className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8 whitespace-nowrap" title="Загальний нормативний обсяг годин">
+            <th rowSpan={3} className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8 whitespace-nowrap" title="Загальний нормативний обсяг годин">
               Години
             </th>
             {semesters.map((sem) => (
-              <th key={sem} colSpan={7} className="border border-gray-400 px-0.5 py-0.5 leading-tight">
+              <th key={sem} colSpan={7} className="border border-border px-0.5 py-0.5 leading-tight">
                 {ORDINAL[sem] ?? String(sem)} семестр — Кількість годин
               </th>
             ))}
-            <th colSpan={nSems} className="border border-gray-400 px-0.5 py-0.5 leading-tight font-normal text-gray-600">
+            <th colSpan={nSems} className="border border-border px-0.5 py-0.5 leading-tight font-normal text-muted-foreground">
               Розподіл навч.<br />роботи
             </th>
-            <th rowSpan={4} className="border border-gray-400 p-0.5 align-middle text-left min-w-[80px] w-[80px] font-normal text-gray-700 leading-tight whitespace-nowrap">
-              Викладач
-            </th>
-            <th rowSpan={4} className="border border-gray-400 w-5" />
+            <th rowSpan={4} className="border border-border w-5" />
           </tr>
 
           {/* ── Row 2: sub-group headers ── */}
           <tr>
-            <th rowSpan={2} className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal">Екзамени</th>
-            <th rowSpan={2} className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal">Заліки</th>
-            <th rowSpan={2} className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal">КП / КР</th>
+            <th rowSpan={2} className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal">Екзамени</th>
+            <th rowSpan={2} className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal">Заліки</th>
+            <th rowSpan={2} className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal">КП / КР</th>
             {semesters.map((sem) => (
               <Fragment key={sem}>
-                <th colSpan={4} className="border border-gray-400 px-0.5 py-0.5">Аудиторних</th>
-                <th colSpan={3} className="border border-gray-400 px-0.5 py-0.5">Самостійної роботи</th>
+                <th colSpan={4} className="border border-border px-0.5 py-0.5">Аудиторних</th>
+                <th colSpan={3} className="border border-border px-0.5 py-0.5">Самостійної роботи</th>
               </Fragment>
             ))}
             {semesters.map((sem) => (
-              <th key={sem} rowSpan={2} className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal text-gray-600">
+              <th key={sem} rowSpan={2} className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal text-muted-foreground">
                 {ORDINAL[sem] ?? String(sem)} сем. год/тижд
               </th>
             ))}
@@ -559,31 +436,31 @@ function HourDistributionTable({
           <tr>
             {semesters.map((sem) => (
               <Fragment key={sem}>
-                <th className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8 font-bold">Всього</th>
-                <th className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8">Лекції</th>
-                <th className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8">Практ./Лаб.</th>
-                <th className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8">Семінарські</th>
-                <th className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8 font-bold">Всього</th>
-                <th className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8">СПРС</th>
-                <th className="border border-gray-400 p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8">Підготовка до іспиту</th>
+                <th className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8 font-bold">Всього</th>
+                <th className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8">Лекції</th>
+                <th className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8">Практ./Лаб.</th>
+                <th className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8">Семінарські</th>
+                <th className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8 font-bold">Всього</th>
+                <th className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8">СПРС</th>
+                <th className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-8">Підготовка до іспиту</th>
               </Fragment>
             ))}
           </tr>
 
           {/* ── Row 4: column numbers ── */}
-          <tr className="font-normal text-gray-400 text-[9px]">
+          <tr className="font-normal text-muted-foreground text-[9px]">
             {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-              <td key={n} className="border border-gray-400 py-0.5 text-center">{n}</td>
+              <td key={n} className="border border-border py-0.5 text-center">{n}</td>
             ))}
             {semesters.flatMap((sem, si) =>
               [8, 9, 10, 11, 12, 13, 14].map((base) => (
-                <td key={`${sem}-${base}`} className="border border-gray-400 py-0.5 text-center">
+                <td key={`${sem}-${base}`} className="border border-border py-0.5 text-center">
                   {base + si * 7}
                 </td>
               )),
             )}
             {semesters.map((_, si) => (
-              <td key={si} className="border border-gray-400 py-0.5 text-center">
+              <td key={si} className="border border-border py-0.5 text-center">
                 {8 + nSems * 7 + si}
               </td>
             ))}
@@ -625,33 +502,33 @@ function HourDistributionTable({
                   : 'partial'
 
             return (
-              <tr key={row.componentId} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+              <tr key={row.componentId} className="hover:bg-muted/40 dark:hover:bg-muted">
 
                 {/* ── Left block ── */}
-                <td className="border border-gray-300 px-1 py-1.5 text-center font-mono align-middle whitespace-nowrap">
+                <td className="border border-border px-1 py-1.5 text-center font-mono align-middle whitespace-nowrap">
                   {row.code ?? ''}
                 </td>
-                <td className="border border-gray-300 px-1.5 py-1.5 align-middle w-[120px] min-w-[120px]">
+                <td className="border border-border px-1.5 py-1.5 align-middle w-[120px] min-w-[120px]">
                   {row.name}
                   {row.componentType !== 'DISCIPLINE' && (
-                    <span className="text-[10px] text-gray-400 italic ml-1">
+                    <span className="text-[10px] text-muted-foreground italic ml-1">
                       ({COMPONENT_TYPE_LABELS[row.componentType]})
                     </span>
                   )}
                 </td>
-                <td className="border border-gray-300 px-0.5 py-1.5 text-center font-mono align-middle text-gray-700">
+                <td className="border border-border px-0.5 py-1.5 text-center font-mono align-middle text-muted-foreground">
                   {examSems.join(',')}
                 </td>
-                <td className="border border-gray-300 px-0.5 py-1.5 text-center font-mono align-middle text-gray-700">
+                <td className="border border-border px-0.5 py-1.5 text-center font-mono align-middle text-muted-foreground">
                   {creditSems.join(',')}
                 </td>
-                <td className="border border-gray-300 px-0.5 py-1.5 text-center font-mono align-middle text-gray-700">
+                <td className="border border-border px-0.5 py-1.5 text-center font-mono align-middle text-muted-foreground">
                   {courseSems.join(',')}
                 </td>
-                <td className="border border-gray-300 px-0.5 py-1.5 text-center font-mono align-middle">
+                <td className="border border-border px-0.5 py-1.5 text-center font-mono align-middle">
                   {ectsDisplay}
                 </td>
-                <td className="border border-gray-300 px-0.5 py-1.5 text-center font-mono align-middle font-semibold">
+                <td className="border border-border px-0.5 py-1.5 text-center font-mono align-middle font-semibold">
                   {totalRowHours}
                 </td>
 
@@ -662,7 +539,7 @@ function HourDistributionTable({
                     return (
                       <Fragment key={sem}>
                         {Array.from({ length: 7 }, (_, i) => (
-                          <td key={i} className="border border-gray-300 px-0.5 py-1.5 text-center text-gray-200 align-middle bg-gray-50/50">—</td>
+                          <td key={i} className="border border-border px-0.5 py-1.5 text-center text-muted-foreground/40 align-middle bg-muted/40">—</td>
                         ))}
                       </Fragment>
                     )
@@ -681,8 +558,8 @@ function HourDistributionTable({
                     <Fragment key={sem}>
                       {/* Аудиторних Всього — computed display */}
                       <td className={cn(
-                        'border border-gray-300 px-0.5 py-1.5 text-center font-mono font-semibold align-middle',
-                        isOver ? 'text-red-600 dark:text-red-400' : audTotal > 0 ? 'text-blue-700 dark:text-blue-400' : 'text-gray-300',
+                        'border border-border px-0.5 py-1.5 text-center font-mono font-semibold align-middle',
+                        isOver ? 'text-red-600 dark:text-red-400' : audTotal > 0 ? 'text-blue-700 dark:text-blue-400' : 'text-muted-foreground/40',
                       )}>
                         {audTotal > 0 ? audTotal : '—'}
                       </td>
@@ -694,13 +571,13 @@ function HourDistributionTable({
                         </>
                       ) : (
                         Array.from({ length: 3 }, (_, i) => (
-                          <td key={i} className="border border-gray-300 px-0.5 py-1.5 text-center text-gray-300 align-middle">—</td>
+                          <td key={i} className="border border-border px-0.5 py-1.5 text-center text-muted-foreground/40 align-middle">—</td>
                         ))
                       )}
                       {/* Самостійної Всього — computed display */}
                       <td className={cn(
-                        'border border-gray-300 px-0.5 py-1.5 text-center font-mono font-semibold align-middle',
-                        srsTotal === 0 ? 'text-gray-300' : '',
+                        'border border-border px-0.5 py-1.5 text-center font-mono font-semibold align-middle',
+                        srsTotal === 0 ? 'text-muted-foreground/40' : '',
                       )}>
                         {srsTotal > 0 ? srsTotal : '—'}
                       </td>
@@ -711,7 +588,7 @@ function HourDistributionTable({
                         </>
                       ) : (
                         Array.from({ length: 2 }, (_, i) => (
-                          <td key={i} className="border border-gray-300 px-0.5 py-1.5 text-center text-gray-300 align-middle">—</td>
+                          <td key={i} className="border border-border px-0.5 py-1.5 text-center text-muted-foreground/40 align-middle">—</td>
                         ))
                       )}
                     </Fragment>
@@ -722,27 +599,19 @@ function HourDistributionTable({
                 {semesters.map((sem) => {
                   const term = row.termsBySemester.get(sem)
                   if (term === undefined) {
-                    return <td key={sem} className="border border-gray-300 px-0.5 py-1.5 text-center text-gray-200 align-middle bg-gray-50/50">—</td>
+                    return <td key={sem} className="border border-border px-0.5 py-1.5 text-center text-muted-foreground/40 align-middle bg-muted/40">—</td>
                   }
                   const d = drafts[term.id]
                   if (d === undefined) {
-                    return <td key={sem} className="border border-gray-300 px-0.5 py-1.5 text-center text-gray-300 align-middle">—</td>
+                    return <td key={sem} className="border border-border px-0.5 py-1.5 text-center text-muted-foreground/40 align-middle">—</td>
                   }
                   return (
                     <EditCell key={sem} value={d.weeklyLectureHours} onChange={(v) => setField(term.id, 'weeklyLectureHours', v)} onBlur={() => handleBlur(term.id)} disabled={isReadOnly} isDecimal />
                   )
                 })}
 
-                {/* ── Викладач ── */}
-                <TeacherCell
-                  termIds={allTerms.map((t) => t.id)}
-                  currentTeacher={allTerms[0]?.teacher ?? null}
-                  workingCurriculumId={wc.id}
-                  disabled={isReadOnly}
-                />
-
                 {/* ── Status ── */}
-                <td className="border border-gray-300 px-1 py-1.5 text-center align-middle">
+                <td className="border border-border px-1 py-1.5 text-center align-middle">
                   <StatusDot status={rowSt} />
                 </td>
               </tr>
@@ -751,35 +620,35 @@ function HourDistributionTable({
         </tbody>
 
         <tfoot>
-          <tr className="bg-gray-100 font-semibold text-[11px] border-t-2 border-gray-400">
-            <td colSpan={2} className="border border-gray-400 px-1 py-0.5 font-bold">Разом</td>
-            <td colSpan={3} className="border border-gray-400" />
-            <td className="border border-gray-400 p-0 text-center font-mono text-gray-600">
+          <tr className="bg-muted font-semibold text-[11px] border-t-2 border-border">
+            <td colSpan={2} className="border border-border px-1 py-0.5 font-bold">Разом</td>
+            <td colSpan={3} className="border border-border" />
+            <td className="border border-border p-0 text-center font-mono text-muted-foreground">
               {totalEctsAll % 1 === 0 ? String(Math.round(totalEctsAll)) : totalEctsAll.toFixed(1)}
             </td>
-            <td className="border border-gray-400 p-0 text-center font-mono text-gray-600">{totalCanonical}</td>
+            <td className="border border-border p-0 text-center font-mono text-muted-foreground">{totalCanonical}</td>
             {semesters.map((sem) => {
               const t = semTotals.get(sem)
               if (t === undefined) {
                 return (
                   <Fragment key={sem}>
-                    {Array.from({ length: 7 }, (_, i) => <td key={i} className="border border-gray-400" />)}
+                    {Array.from({ length: 7 }, (_, i) => <td key={i} className="border border-border" />)}
                   </Fragment>
                 )
               }
               return (
                 <Fragment key={sem}>
-                  <td className="border border-gray-400 p-0 text-center font-mono font-bold">{t.audTotal || '—'}</td>
-                  <td className="border border-gray-400 p-0 text-center font-mono">{t.lecture || '—'}</td>
-                  <td className="border border-gray-400 p-0 text-center font-mono">{t.practicalLab || '—'}</td>
-                  <td className="border border-gray-400 p-0 text-center font-mono">{t.seminar || '—'}</td>
-                  <td className="border border-gray-400 p-0 text-center font-mono font-bold">{t.srsTotal || '—'}</td>
-                  <td className="border border-gray-400 p-0 text-center font-mono">{t.sprs || '—'}</td>
-                  <td className="border border-gray-400 p-0 text-center font-mono">{t.prep || '—'}</td>
+                  <td className="border border-border p-0 text-center font-mono font-bold">{t.audTotal || '—'}</td>
+                  <td className="border border-border p-0 text-center font-mono">{t.lecture || '—'}</td>
+                  <td className="border border-border p-0 text-center font-mono">{t.practicalLab || '—'}</td>
+                  <td className="border border-border p-0 text-center font-mono">{t.seminar || '—'}</td>
+                  <td className="border border-border p-0 text-center font-mono font-bold">{t.srsTotal || '—'}</td>
+                  <td className="border border-border p-0 text-center font-mono">{t.sprs || '—'}</td>
+                  <td className="border border-border p-0 text-center font-mono">{t.prep || '—'}</td>
                 </Fragment>
               )
             })}
-            <td colSpan={nSems + 2} className="border border-gray-400" />
+            <td colSpan={nSems + 1} className="border border-border" />
           </tr>
         </tfoot>
       </table>

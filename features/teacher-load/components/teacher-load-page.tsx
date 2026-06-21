@@ -63,6 +63,8 @@ export function TeacherLoadPage() {
 
   const wcIds = new Set(workingCurricula.map((w) => w.id))
   const effectiveWcId = wcIds.has(selectedWcId) ? selectedWcId : ''
+  const selectedVersionId =
+    workingCurricula.find((w) => w.id === effectiveWcId)?.versionId ?? ''
 
   // Доступ лише керівництву; викладачі бачать своє навантаження на головній.
   if (!canManage) {
@@ -173,7 +175,7 @@ export function TeacherLoadPage() {
               <p className="text-sm">Оберіть робочий навчальний план</p>
             </div>
           ) : tab === 'assign' ? (
-            <AssignmentTable workingCurriculumId={effectiveWcId} />
+            <AssignmentTable workingCurriculumId={effectiveWcId} versionId={selectedVersionId} />
           ) : (
             <TeacherLoadTable workingCurriculumId={effectiveWcId} />
           )}

@@ -15,6 +15,7 @@ import {
 
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useGroupAssignments } from '@/features/academic-plans/api'
 import { useTeachers } from '@/features/teachers/api'
 import { DEFAULT_FILTERS } from '@/features/teachers/types'
 import { cn } from '@/lib/utils'
@@ -521,15 +522,45 @@ function DistributionModeRow({
   const setMode = useSetDistributionMode()
   const hasPractice = (group.hoursByType.PRACTICE ?? 0) > 0
   const hasLab = (group.hoursByType.LAB ?? 0) > 0
-  if (!hasPractice && !hasLab) return null
 
   const pending = setMode.isPending
+  const patch = (data: Partial<{ practiceMode: LoadDistributionMode; labMode: LoadDistributionMode; subgroupCount: number }>) =>
+    setMode.mutate({
+      workingCurriculumId: rep.workingCurriculumId,
+      curriculumComponentTermId: rep.curriculumComponentTermId,
+      ...data,
+    })
 
   return (
     <tr className="bg-muted/30">
       <TD colSpan={13} className="px-3 py-1.5">
         <div className="flex items-center gap-4 flex-wrap text-xs">
-          <span className="font-medium text-muted-foreground">Режим розподілу:</span>
+          {/* Підгрупи — для всіх видів занять (мова/IT/фізкультура) */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-muted-foreground">Підгрупи:</span>
+            <div className="inline-flex rounded-md border border-border overflow-hidden">
+              {[1, 2, 3].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  disabled={pending || rep.subgroupCount === n}
+                  onClick={() => patch({ subgroupCount: n })}
+                  className={cn(
+                    'px-2 py-0.5 text-[11px] transition-colors disabled:cursor-default',
+                    rep.subgroupCount === n
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background text-muted-foreground hover:bg-muted disabled:opacity-100',
+                  )}
+                >
+                  {n === 1 ? 'Без поділу' : n}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {(hasPractice || hasLab) && (
+            <span className="font-medium text-muted-foreground">Режим:</span>
+          )}
           {hasPractice && (
             <ModeSegmented
               label="Практичні"
@@ -581,9 +612,10 @@ function ComponentGroupRow({
   isConfirmed: boolean
 }) {
   const isMixed = group.teacherState === 'mixed'
-  const hasPracLab = (group.hoursByType.PRACTICE ?? 0) > 0 || (group.hoursByType.LAB ?? 0) > 0
+  // Дозволяємо розгортання будь-якої незатвердженої дисципліни — у розгорнутому
+  // блоці є контроли підгруп і режиму розподілу.
   const canExpand =
-    group.subjects.length > 1 || isMixed || group.hasSubgroups || (hasPracLab && !isConfirmed)
+    group.subjects.length > 1 || isMixed || group.hasSubgroups || !isConfirmed
   const isUnassigned = group.teacherState === 'none' && !isConfirmed
   const rep = group.representativeSubject
 
@@ -835,10 +867,15 @@ function extractSemesters(items: SubjectAssignmentDto[]): number[] {
 
 export function AssignmentTable({
   workingCurriculumId,
+  versionId,
 }: {
   workingCurriculumId: string
+  versionId?: string
 }) {
   const { data: assignments, isLoading, error } = useAssignments(workingCurriculumId)
+  const { data: groupAssignments } = useGroupAssignments(
+    versionId ? { versionId, activeOnly: true } : undefined,
+  )
   const generateMut = useGenerateAssignments()
   const user = useUser()
   const canRevoke = !!user && (user.role === 'DIRECTOR' || user.role === 'ADMINISTRATOR')
@@ -846,6 +883,12 @@ export function AssignmentTable({
   const [revokeOpen, setRevokeOpen] = useState(false)
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set())
   const [filterSemester, setFilterSemester] = useState<number | null>(null)
+  const [filterGroupId, setFilterGroupId] = useState<string>('')
+
+  // Групи версії (для фільтра): унікальні, відсортовані за назвою.
+  const groupOptions = Array.from(
+    new Map((groupAssignments ?? []).map((g) => [g.group.id, g.group])).values(),
+  ).sort((a, b) => a.name.localeCompare(b.name))
 
   function toggleExpand(key: string) {
     setExpandedKeys((prev) => {
@@ -857,12 +900,13 @@ export function AssignmentTable({
 
   const availableSemesters = assignments !== undefined ? extractSemesters(assignments) : []
 
-  const filtered =
-    assignments !== undefined
-      ? filterSemester !== null
-        ? assignments.filter((sa) => sa.semesterNumber === filterSemester)
-        : assignments
-      : []
+  const filtered = (assignments ?? []).filter((sa) => {
+    if (filterSemester !== null && sa.semesterNumber !== filterSemester) return false
+    // Фільтр групи: потокові ОК (groupId === null) показуємо завжди;
+    // per-group ОК — лише для обраної групи.
+    if (filterGroupId !== '' && sa.groupId !== null && sa.groupId !== filterGroupId) return false
+    return true
+  })
 
   const groups = sortGroups(buildGroups(filtered))
 
@@ -924,6 +968,21 @@ export function AssignmentTable({
             >
               ✕
             </button>
+          )}
+
+          {/* Фільтр групи — лише коли до версії прив'язано кілька груп */}
+          {groupOptions.length > 1 && (
+            <select
+              value={filterGroupId}
+              onChange={(e) => { setFilterGroupId(e.target.value); setExpandedKeys(new Set()) }}
+              className="h-7 text-xs rounded-md border border-border bg-background px-2 pr-6 cursor-pointer"
+              title="Показати призначення для конкретної групи (потокові ОК показуються завжди)"
+            >
+              <option value="">Усі групи</option>
+              {groupOptions.map((g) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
           )}
         </div>
 

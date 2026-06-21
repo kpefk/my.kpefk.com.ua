@@ -166,6 +166,8 @@ export interface SubjectAssignmentDto {
   /** Режим розподілу практик/лаб для ОК-семестру */
   practiceMode: LoadDistributionMode
   labMode: LoadDistributionMode
+  /** Кількість підгруп (1 = без поділу) */
+  subgroupCount: number
   /** Сума годин по всіх lesson rows */
   totalHours: number
   lessons: LessonAssignmentDto[]
@@ -201,6 +203,7 @@ export interface SetDistributionModePayload {
   curriculumComponentTermId: string
   practiceMode?: LoadDistributionMode
   labMode?: LoadDistributionMode
+  subgroupCount?: number
 }
 
 // ─── Display helpers ──────────────────────────────────────────────────────────

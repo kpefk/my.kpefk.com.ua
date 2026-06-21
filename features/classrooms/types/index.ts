@@ -4,6 +4,23 @@ export interface ClassroomPhoto {
   order: number
 }
 
+export type ClassroomType =
+  | 'LECTURE'
+  | 'PRACTICE'
+  | 'LAB'
+  | 'COMPUTER'
+  | 'SPORTS'
+  | 'OTHER'
+
+export const CLASSROOM_TYPE_LABELS: Record<ClassroomType, string> = {
+  LECTURE: 'Лекційна',
+  PRACTICE: 'Практична',
+  LAB: 'Лабораторна',
+  COMPUTER: "Комп'ютерний клас",
+  SPORTS: 'Спортивна зала',
+  OTHER: 'Універсальна',
+}
+
 export interface ClassroomTeacher {
   id: string
   lastName: string
@@ -18,6 +35,8 @@ export interface ClassroomDto {
   number: string
   name: string
   photos: ClassroomPhoto[]
+  capacity: number | null
+  type: ClassroomType | null
   teacherId: string | null
   teacher: ClassroomTeacher | null
   passportGoogleFileId: string | null
@@ -30,12 +49,16 @@ export interface CreateClassroomInput {
   number: string
   name: string
   teacherId?: string | null
+  capacity?: number | null
+  type?: ClassroomType | null
 }
 
 export interface UpdateClassroomInput {
   number?: string
   name?: string
   teacherId?: string | null
+  capacity?: number | null
+  type?: ClassroomType | null
 }
 
 export interface ClassroomFilters {

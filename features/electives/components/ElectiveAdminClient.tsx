@@ -5,7 +5,9 @@ import {
   AlertTriangle,
   CheckCircle2,
   Download,
+  HelpCircle,
   Loader2,
+  Printer,
   Search,
   Users,
 } from 'lucide-react'
@@ -13,6 +15,13 @@ import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import {
   Dialog,
   DialogContent,
@@ -59,7 +68,11 @@ import type {
   ElectiveOfferingDto,
   StudentWithoutSelectionDto,
 } from '../types'
+import { useAppendix3Data } from '@/features/individual-plans/api'
+import type { Appendix3Data } from '@/features/individual-plans/types'
+
 import { ElectiveCampaignPanel } from './ElectiveCampaignPanel'
+import { ElectiveCatalogAdminPanel } from './ElectiveCatalogAdminPanel'
 
 const CURRENT_ACADEMIC_YEAR = getCurrentAcademicYear()
 
@@ -235,7 +248,7 @@ function AssignDialog({
             </div>
           )}
           <div className="space-y-1.5">
-            <Label htmlFor="override-reason">Підстава (необов'язково)</Label>
+            <Label htmlFor="override-reason">Підстава (необов&apos;язково)</Label>
             <Input
               id="override-reason"
               value={overrideReason}
@@ -337,7 +350,7 @@ function AutoAssignBulkDialog({
               {componentId ? (
                 <span className="text-destructive ml-1">*</span>
               ) : (
-                <span className="text-muted-foreground ml-1">(необов'язково)</span>
+                <span className="text-muted-foreground ml-1">(необов&apos;язково)</span>
               )}
             </Label>
             <Input
@@ -348,7 +361,7 @@ function AutoAssignBulkDialog({
             />
             {componentId && !overrideReason.trim() && (
               <p className="text-xs text-destructive">
-                При ручному виборі дисципліни підстава є обов'язковою.
+                При ручному виборі дисципліни підстава є обов&apos;язковою.
               </p>
             )}
           </div>
@@ -491,11 +504,19 @@ function AssignTab({ academicYear }: { academicYear: string }) {
 function EnrollmentListTab({ academicYear }: { academicYear: string }) {
   const [seasonId, setSeasonId] = useState('')
   const [componentId, setComponentId] = useState('')
+  const [groupId, setGroupId] = useState('')
+  const [showAppendix3, setShowAppendix3] = useState(false)
   const { data: seasons = [] } = useSeasons(academicYear)
   const { data: offerings = [] } = useOfferings(seasonId)
 
   // inline enrollment list query
   const { data: rows = [], isLoading } = useEnrollmentListV2(seasonId, componentId)
+
+  // Appendix 3 data
+  const { data: appendix3Data } = useAppendix3Data(
+    showAppendix3 ? seasonId : '',
+    showAppendix3 ? groupId : '',
+  )
 
   const handleExport = () => {
     const header = ['№', 'ПІБ', 'Заява', 'Наказ']
@@ -514,6 +535,7 @@ function EnrollmentListTab({ academicYear }: { academicYear: string }) {
   const handleSeasonChange = (id: string) => {
     setSeasonId(id)
     setComponentId('')
+    setShowAppendix3(false)
   }
 
   return (
@@ -532,7 +554,7 @@ function EnrollmentListTab({ academicYear }: { academicYear: string }) {
           </SelectContent>
         </Select>
 
-        {seasonId && (
+        {seasonId && !showAppendix3 && (
           <Select value={componentId} onValueChange={setComponentId}>
             <SelectTrigger className="w-[260px] bg-background">
               <SelectValue placeholder="Оберіть дисципліну..." />
@@ -547,50 +569,129 @@ function EnrollmentListTab({ academicYear }: { academicYear: string }) {
           </Select>
         )}
 
-        {rows.length > 0 && (
+        {seasonId && showAppendix3 && (
+          <div className="relative min-w-[200px] max-w-[260px]">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={groupId}
+              onChange={e => setGroupId(e.target.value)}
+              placeholder="ID групи..."
+              className="pl-9 bg-background"
+            />
+          </div>
+        )}
+
+        {rows.length > 0 && !showAppendix3 && (
           <Button size="sm" variant="outline" onClick={handleExport} className="gap-1.5">
             <Download size={14} />Завантажити CSV
           </Button>
         )}
+
+        {seasonId && (
+          <Button
+            size="sm"
+            variant={showAppendix3 ? 'default' : 'outline'}
+            onClick={() => setShowAppendix3(!showAppendix3)}
+            className="gap-1.5"
+          >
+            <Printer size={14} />
+            {showAppendix3 ? 'Таблиця зарахувань' : 'Друк Додатку 3'}
+          </Button>
+        )}
       </div>
 
+      {showAppendix3 && appendix3Data ? (
+        <Appendix3PrintViewInline data={appendix3Data} />
+      ) : (
+        <div className="rounded-xl border border-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <TableHead className="w-10">№</TableHead>
+                <TableHead>ПІБ</TableHead>
+                <TableHead className="w-20 text-center">Заява</TableHead>
+                <TableHead className="w-20 text-center">Наказ</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading && Array.from({ length: 6 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-6" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-4 mx-auto" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-4 mx-auto" /></TableCell>
+                </TableRow>
+              ))}
+              {!isLoading && rows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-10">
+                    {seasonId && componentId ? 'Немає записів' : 'Оберіть каталог та дисципліну ВК'}
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoading && rows.map(r => (
+                <TableRow key={r.studentId} className="hover:bg-muted/50 transition-colors">
+                  <TableCell className="text-sm text-muted-foreground font-mono">{r.no}</TableCell>
+                  <TableCell className="text-sm">{r.fullName}</TableCell>
+                  <TableCell className="text-center text-emerald-600 dark:text-emerald-400 font-medium">{r.voluntary}</TableCell>
+                  <TableCell className="text-center text-amber-600 dark:text-amber-400 font-medium">{r.assigned}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Appendix3PrintViewInline({ data }: { data: Appendix3Data }) {
+  return (
+    <div className="space-y-3">
+      <div className="text-center">
+        <p className="text-lg font-bold">Додаток 3</p>
+        <p className="text-sm text-muted-foreground">
+          Список студентів групи {data.group}, зарахованих на ВК «{data.block}»
+          ({data.semester} семестр, {data.academicYear} н.р.)
+        </p>
+      </div>
       <div className="rounded-xl border border-border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
               <TableHead className="w-10">№</TableHead>
               <TableHead>ПІБ</TableHead>
-              <TableHead className="w-20 text-center">Заява</TableHead>
-              <TableHead className="w-20 text-center">Наказ</TableHead>
+              <TableHead>Назва ВК</TableHead>
+              <TableHead className="w-36 text-center">Спосіб вибору ВК</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading && Array.from({ length: 6 }).map((_, i) => (
-              <TableRow key={i}>
-                <TableCell><Skeleton className="h-4 w-6" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-4 mx-auto" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-4 mx-auto" /></TableCell>
-              </TableRow>
-            ))}
-            {!isLoading && rows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-10">
-                  {seasonId && componentId ? 'Немає записів' : 'Оберіть каталог та дисципліну ВК'}
-                </TableCell>
-              </TableRow>
-            )}
-            {!isLoading && rows.map(r => (
-              <TableRow key={r.studentId} className="hover:bg-muted/50 transition-colors">
+            {data.rows.map(r => (
+              <TableRow key={r.no} className="hover:bg-muted/50 transition-colors">
                 <TableCell className="text-sm text-muted-foreground font-mono">{r.no}</TableCell>
                 <TableCell className="text-sm">{r.fullName}</TableCell>
-                <TableCell className="text-center text-emerald-600 dark:text-emerald-400 font-medium">{r.voluntary}</TableCell>
-                <TableCell className="text-center text-amber-600 dark:text-amber-400 font-medium">{r.assigned}</TableCell>
+                <TableCell className="text-sm">{r.componentName}</TableCell>
+                <TableCell className="text-center text-sm font-medium">
+                  {r.methodLabel}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
+      <div className="flex gap-6 text-sm text-muted-foreground">
+        <span>Всього: {data.totalStudents}</span>
+        <span>За заявою: {data.voluntaryCount}</span>
+        <span>За наказом: {data.assignedCount}</span>
+      </div>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => window.print()}
+        className="gap-1.5"
+      >
+        <Printer size={14} />Друк
+      </Button>
     </div>
   )
 }
@@ -631,8 +732,105 @@ interface AdminProps {
   academicYear?: string
 }
 
+const FAQ_STEPS = [
+  {
+    tab: 'Каталог ВК',
+    title: 'Створіть або клонуйте каталог ВК',
+    description:
+      'Оберіть спеціальність і додайте вибіркові компоненти (назва, семестр, кредити ЄКТС). Можна клонувати каталог з попереднього року.',
+  },
+  {
+    tab: 'Кампанія',
+    title: 'Створіть кампанію вибору',
+    description:
+      'Вкажіть навчальний рік, семестр, дати початку/завершення вибору. Кампанія визначає часовий вікно, протягом якого студенти можуть обирати ВК.',
+  },
+  {
+    tab: 'Каталог ВК',
+    title: 'Опублікуйте каталог (статус → Відкрито)',
+    description:
+      'Змініть статус кожного ВК з «Чернетка» на «Відкрито». Лише відкриті ВК стають видимими для студентів і доступні для вибору.',
+  },
+  {
+    tab: '—',
+    title: 'Студенти подають заяви',
+    description:
+      'Після відкриття каталогу студенти заходять на сторінку «Мої ВК» і обирають компоненти на відповідний семестр. Заява фіксується автоматично (§3.4 Положення).',
+  },
+  {
+    tab: 'Вибір по групах',
+    title: 'Перевірте статистику по групах',
+    description:
+      'Перегляньте скільки студентів у кожній групі вже зробили вибір, а скільки — ні. Зверніть увагу на кворум.',
+  },
+  {
+    tab: 'Призначення',
+    title: 'Призначте ВК тим, хто не обрав',
+    description:
+      'Студенти, які не подали заяву у встановлений строк, зараховуються на ВК наказом (§3.11 Положення). Використовуйте авто-призначення або зробіть це вручну.',
+  },
+  {
+    tab: '—',
+    title: 'Підтвердіть усі вибори',
+    description:
+      'Натисніть «Підтвердити всі вибори» (кнопка зверху). Це зафіксує остаточний розподіл студентів по ВК та змінить статус виборів на «Підтверджено».',
+  },
+  {
+    tab: 'Списки (Дод. 3)',
+    title: 'Роздрукуйте Додаток 3',
+    description:
+      'Сформуйте та роздрукуйте список зарахованих студентів із зазначенням способу вибору ВК (заява / наказ) — відповідно до §3.9 Положення.',
+  },
+  {
+    tab: '—',
+    title: 'Сформуйте індивідуальні навчальні плани',
+    description:
+      'Перейдіть до розділу «Індивідуальні плани» (бічне меню) → оберіть групу → «Сформувати ІНП для групи». Обрані ВК автоматично потраплять до плану кожного студента (§5.12 Наказу 510).',
+  },
+] as const
+
+function FaqDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  return (
+    <Drawer direction="right" open={open} onOpenChange={onOpenChange}>
+      <DrawerContent className="sm:max-w-md">
+        <DrawerHeader className="border-b border-border">
+          <DrawerTitle>Порядок роботи з ВК</DrawerTitle>
+        </DrawerHeader>
+        <div className="flex-1 overflow-y-auto px-4 py-4">
+          <ol className="space-y-4">
+            {FAQ_STEPS.map((step, i) => (
+              <li key={i} className="flex gap-3 text-sm">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                  {i + 1}
+                </span>
+                <div>
+                  <p className="font-medium">
+                    {step.title}
+                    {step.tab !== '—' && (
+                      <span className="ml-1.5 text-xs text-muted-foreground font-normal">
+                        (вкладка «{step.tab}»)
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-muted-foreground mt-0.5">{step.description}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+        <div className="border-t border-border p-4">
+          <DrawerClose asChild>
+            <Button variant="outline" className="w-full">Закрити</Button>
+          </DrawerClose>
+        </div>
+      </DrawerContent>
+    </Drawer>
+  )
+}
+
 export function ElectiveAdminClient({ academicYear = CURRENT_ACADEMIC_YEAR }: AdminProps) {
   const confirm = useConfirmSelectionsV2()
+  const [faqOpen, setFaqOpen] = useState(false)
 
   return (
     <div className="space-y-4">
@@ -641,24 +839,38 @@ export function ElectiveAdminClient({ academicYear = CURRENT_ACADEMIC_YEAR }: Ad
           <h1 className="text-2xl font-bold tracking-tight">Вибіркові компоненти</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{academicYear}</p>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() =>
-            confirm.mutate(academicYear, {
-              onSuccess: r => toast.success(`Підтверджено: ${r.confirmed} вибор(ів)`),
-            })
-          }
-          disabled={confirm.isPending}
-          className="gap-1.5"
-        >
-          {confirm.isPending ? <Loader2 size={14} className="animate-spin" /> : <Users size={14} />}
-          Підтвердити всі вибори
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setFaqOpen(true)}
+            title="Порядок роботи з ВК"
+            className="h-8 w-8 text-muted-foreground"
+          >
+            <HelpCircle size={18} />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              confirm.mutate(academicYear, {
+                onSuccess: r => toast.success(`Підтверджено: ${r.confirmed} вибор(ів)`),
+              })
+            }
+            disabled={confirm.isPending}
+            className="gap-1.5"
+          >
+            {confirm.isPending ? <Loader2 size={14} className="animate-spin" /> : <Users size={14} />}
+            Підтвердити всі вибори
+          </Button>
+        </div>
       </div>
 
-      <Tabs defaultValue="campaign">
+      <FaqDrawer open={faqOpen} onOpenChange={setFaqOpen} />
+
+      <Tabs defaultValue="catalog">
         <TabsList>
+          <TabsTrigger value="catalog">Каталог ВК</TabsTrigger>
           <TabsTrigger value="campaign">Кампанія</TabsTrigger>
           <TabsTrigger value="stats">Вибір по групах</TabsTrigger>
           <TabsTrigger value="assign">Призначення</TabsTrigger>
@@ -668,6 +880,9 @@ export function ElectiveAdminClient({ academicYear = CURRENT_ACADEMIC_YEAR }: Ad
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="catalog" className="mt-4">
+          <ElectiveCatalogAdminPanel academicYear={academicYear} />
+        </TabsContent>
         <TabsContent value="campaign" className="mt-4">
           <ElectiveCampaignPanel />
         </TabsContent>

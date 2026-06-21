@@ -6,8 +6,6 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
-  FileText,
-  Gavel,
   Loader2,
   Plus,
   RefreshCw,
@@ -60,7 +58,6 @@ import {
   useGenerateCampaignSeasons,
   useOfferings,
   useRemoveOffering,
-  useUpdateCampaign,
   useUpdateCampaignStatus,
   useUpdateSeasonStatus,
 } from '../api'
@@ -157,62 +154,6 @@ function CreateCampaignDialog({ open, onClose }: { open: boolean; onClose: () =>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
-
-// ── Campaign documents (педрада + наказ) ─────────────────────────────────────
-
-function CampaignDocsForm({ campaign }: { campaign: ElectiveCampaignDto }) {
-  const update = useUpdateCampaign()
-  const [protocolNumber, setProtocolNumber] = useState(campaign.pedagogicalCouncilProtocolNumber ?? '')
-  const [councilDate, setCouncilDate] = useState(campaign.pedagogicalCouncilDate?.slice(0, 10) ?? '')
-  const [orderNumber, setOrderNumber] = useState(campaign.directorOrderNumber ?? '')
-  const [orderDate, setOrderDate] = useState(campaign.directorOrderDate?.slice(0, 10) ?? '')
-
-  const save = () => {
-    update.mutate(
-      {
-        id: campaign.id,
-        data: {
-          ...(protocolNumber && { pedagogicalCouncilProtocolNumber: protocolNumber }),
-          ...(councilDate && { pedagogicalCouncilDate: councilDate }),
-          ...(orderNumber && { directorOrderNumber: orderNumber }),
-          ...(orderDate && { directorOrderDate: orderDate }),
-        },
-      },
-      { onSuccess: () => toast.success('Реквізити збережено') },
-    )
-  }
-
-  return (
-    <div className="rounded-xl border border-border p-4 space-y-3">
-      <div className="flex items-center gap-2 text-sm font-semibold">
-        <Gavel size={15} />
-        Затвердження каталогу (§2.4)
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label className="text-xs">Протокол педради №</Label>
-          <Input value={protocolNumber} onChange={e => setProtocolNumber(e.target.value)} placeholder="№ протоколу" />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">Дата засідання педради</Label>
-          <Input type="date" value={councilDate} onChange={e => setCouncilDate(e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">Наказ директора №</Label>
-          <Input value={orderNumber} onChange={e => setOrderNumber(e.target.value)} placeholder="№ наказу" />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">Дата наказу</Label>
-          <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} />
-        </div>
-      </div>
-      <Button size="sm" variant="outline" onClick={save} disabled={update.isPending} className="gap-1.5">
-        {update.isPending ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
-        Зберегти реквізити
-      </Button>
-    </div>
   )
 }
 
@@ -822,7 +763,6 @@ function CampaignDetail({ campaign }: { campaign: ElectiveCampaignDto }) {
         </span>
       </div>
 
-      <CampaignDocsForm campaign={campaign} />
       <BlockSeasonsSection campaignId={campaign.id} />
       <CampaignProgressTable campaignId={campaign.id} />
     </div>

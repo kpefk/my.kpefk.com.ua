@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
 
-import { ScheduleClient } from '@/components/schedule/ScheduleClient'
+import { ScheduleViewClient } from '@/features/schedule/components/ScheduleViewClient'
 
 export const metadata: Metadata = {
-  title: 'Розклад',
+  title: 'Розклад занять',
 }
 
 export default function SchedulePage() {
-  return <ScheduleClient />
+  return <ScheduleViewClient />
 }

@@ -26,7 +26,13 @@ import { useTeachers } from '@/features/teachers/api'
 import { getFullName } from '@/features/teachers/types'
 
 import { useCreateClassroom, useUpdateClassroom } from '../api'
-import type { ClassroomDto } from '../types'
+import {
+  CLASSROOM_TYPE_LABELS,
+  type ClassroomDto,
+  type ClassroomType,
+} from '../types'
+
+const NO_TYPE = 'none'
 
 interface ClassroomFormDialogProps {
   open: boolean
@@ -41,6 +47,10 @@ export function ClassroomFormDialog({ open, onClose, classroom }: ClassroomFormD
   const [number, setNumber] = useState(classroom?.number ?? '')
   const [name, setName] = useState(classroom?.name ?? '')
   const [teacherId, setTeacherId] = useState<string>(classroom?.teacherId ?? 'none')
+  const [capacity, setCapacity] = useState<string>(
+    classroom?.capacity != null ? String(classroom.capacity) : '',
+  )
+  const [type, setType] = useState<string>(classroom?.type ?? NO_TYPE)
 
   // Синхронізуємо стан при відкритті в режимі редагування
   useEffect(() => {
@@ -48,6 +58,8 @@ export function ClassroomFormDialog({ open, onClose, classroom }: ClassroomFormD
       setNumber(classroom?.number ?? '')
       setName(classroom?.name ?? '')
       setTeacherId(classroom?.teacherId ?? 'none')
+      setCapacity(classroom?.capacity != null ? String(classroom.capacity) : '')
+      setType(classroom?.type ?? NO_TYPE)
     }
   }, [open, classroom])
 
@@ -65,6 +77,8 @@ export function ClassroomFormDialog({ open, onClose, classroom }: ClassroomFormD
       number: number.trim(),
       name: name.trim(),
       teacherId: teacherId === 'none' ? null : teacherId,
+      capacity: capacity.trim() === '' ? null : Number(capacity),
+      type: type === NO_TYPE ? null : (type as ClassroomType),
     }
 
     if (isEdit) {
@@ -119,6 +133,37 @@ export function ClassroomFormDialog({ open, onClose, classroom }: ClassroomFormD
               className="bg-background"
             />
           </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field>
+              <FieldLabel htmlFor="classroom-capacity">Місткість (місць)</FieldLabel>
+              <Input
+                id="classroom-capacity"
+                type="number"
+                min={1}
+                placeholder="30"
+                value={capacity}
+                onChange={(e) => setCapacity(e.target.value)}
+                className="bg-background"
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="classroom-type">Тип аудиторії</FieldLabel>
+              <Select value={type} onValueChange={setType}>
+                <SelectTrigger id="classroom-type" className="bg-background">
+                  <SelectValue placeholder="Не вказано" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_TYPE}>— Не вказано</SelectItem>
+                  {(Object.keys(CLASSROOM_TYPE_LABELS) as ClassroomType[]).map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {CLASSROOM_TYPE_LABELS[t]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
 
           <Field>
             <FieldLabel htmlFor="classroom-teacher">Завідувач кабінету</FieldLabel>
