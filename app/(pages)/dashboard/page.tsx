@@ -10,6 +10,7 @@ import {
   mockAnnouncements,
   getNextClass,
 } from "@/lib/mock-data";
+import AdminDashboardClient from "@/components/dashboard/AdminDashboardClient";
 
 export const metadata: Metadata = {
   title: "Головна",
@@ -38,9 +39,11 @@ export default function DashboardPage() {
           <AnnouncementsFeed items={mockAnnouncements} delay={0.2} />
         </div>
 
+
         {/* Right column */}
         <div className="lg:col-span-1 space-y-5">
           {/* Викладачам — їхнє педагогічне навантаження (для інших ролей рендериться null) */}
+          <AdminDashboardClient />
           <MyTeacherLoadCard />
           <GradesCard summary={mockGradesSummary} delay={0.15} />
         </div>

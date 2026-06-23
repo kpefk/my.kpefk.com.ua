@@ -14,6 +14,8 @@ import type {
   CreateSubstitutionPayload,
   CrossScheduleEntryDto,
   EligibleGroupDto,
+  GenerateAllPayload,
+  GenerateAllResultDto,
   GenerateSchedulePayload,
   GenerateScheduleResultDto,
   MassReplacePayload,
@@ -152,6 +154,33 @@ export function useGenerateSchedule() {
     },
     onError: (err: unknown) => {
       const msg = err instanceof ApiError ? err.message : 'Помилка генерації розкладу'
+      toast.error(msg)
+    },
+  })
+}
+
+export function useGenerateAll() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: GenerateAllPayload) =>
+      apiPost<GenerateAllResultDto>(ENDPOINTS.SCHEDULE.GENERATE_ALL, payload),
+    onSuccess: (result) => {
+      // Зачіпає всі групи — інвалідуємо весь кеш розкладу.
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.all })
+      const groupWarnings = result.results.filter((r) => r.warnings.length > 0).length
+      if (groupWarnings > 0) {
+        toast.warning(
+          `Згенеровано ${result.groupsProcessed} груп (${result.totalEntries} занять), ` +
+            `${groupWarnings} з попередженнями`,
+        )
+      } else {
+        toast.success(
+          `Згенеровано розклад: ${result.groupsProcessed} груп, ${result.totalEntries} занять`,
+        )
+      }
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof ApiError ? err.message : 'Помилка масової генерації'
       toast.error(msg)
     },
   })

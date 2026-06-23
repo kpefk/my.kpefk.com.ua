@@ -82,14 +82,7 @@ export function ScheduleResourceViewClient() {
   }, [entries, parityView])
 
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Розклад за ресурсом</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
-          Перегляд завантаженості викладача або аудиторії (ТЗ §3.10).
-        </p>
-      </div>
-
+    <div className="flex flex-col gap-6">
       {/* Controls */}
       <div className="flex flex-wrap gap-3 items-end">
         <div className="flex flex-col gap-1">
@@ -151,7 +144,7 @@ export function ScheduleResourceViewClient() {
             onChange={(e) => setSemester(Number(e.target.value))}
             className="h-9 rounded-md border border-border bg-background px-2 text-sm"
           >
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+            {[1, 2].map((s) => (
               <option key={s} value={s}>
                 Семестр {s}
               </option>
@@ -224,42 +217,49 @@ export function ScheduleResourceViewClient() {
                       key={`${d.day}:${b.slot}`}
                       className="p-1.5 border-l border-border min-h-[72px] space-y-1.5"
                     >
-                      {cell.map((e) => (
-                        <div
-                          key={e.id}
-                          className="rounded-lg border border-border bg-card p-2"
-                        >
-                          <div className="flex items-start justify-between gap-1.5 mb-1">
-                            <span className="font-medium text-xs leading-snug line-clamp-2">
-                              {e.subjectName}
-                            </span>
-                            <span
-                              className={cn(
-                                'shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full',
-                                LESSON_TYPE_COLOR[e.lessonType],
-                              )}
-                            >
-                              {LESSON_TYPE_LABELS[e.lessonType]}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                            <User className="w-3 h-3 shrink-0 text-primary" />
-                            <span className="truncate">{e.groupName}</span>
-                          </div>
-                          {mode === 'teacher' && e.classroom && (
-                            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                              <DoorOpen className="w-3 h-3 shrink-0 text-primary" />
-                              ауд. {e.classroom.number}
+                      {cell.map((e) => {
+                        const hasConflict = e.conflicts.length > 0
+                        return (
+                          <div
+                            key={e.id}
+                            title={hasConflict ? e.conflicts.join('\n') : undefined}
+                            className={cn(
+                              'rounded-lg border bg-card p-2',
+                              hasConflict ? 'border-destructive/60' : 'border-border',
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-1.5 mb-1">
+                              <span className="font-medium text-xs leading-snug line-clamp-2">
+                                {e.subjectName}
+                              </span>
+                              <span
+                                className={cn(
+                                  'shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full',
+                                  LESSON_TYPE_COLOR[e.lessonType],
+                                )}
+                              >
+                                {LESSON_TYPE_LABELS[e.lessonType]}
+                              </span>
                             </div>
-                          )}
-                          {mode === 'classroom' && e.teacher && (
                             <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                               <User className="w-3 h-3 shrink-0 text-primary" />
-                              {e.teacher.shortName}
+                              <span className="truncate">{e.groupName}</span>
                             </div>
-                          )}
-                        </div>
-                      ))}
+                            {mode === 'teacher' && e.classroom && (
+                              <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                <DoorOpen className="w-3 h-3 shrink-0 text-primary" />
+                                ауд. {e.classroom.number}
+                              </div>
+                            )}
+                            {mode === 'classroom' && e.teacher && (
+                              <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                <User className="w-3 h-3 shrink-0 text-primary" />
+                                {e.teacher.shortName}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   )
                 })}

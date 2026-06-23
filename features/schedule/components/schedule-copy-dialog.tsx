@@ -107,7 +107,7 @@ export function ScheduleCopyDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+                  {[1, 2].map((s) => (
                     <SelectItem key={s} value={String(s)}>
                       Семестр {s}
                     </SelectItem>

@@ -95,9 +95,10 @@ const PLACEHOLDER_GROUPS: PlaceholderGroup[] = [
   {
     title: 'Акредитація',
     items: [
+      { token: '{accreditationText}', label: 'Готовий рядок сертифіката (серія № … протокол № … від ДД/ММ/РРРР)' },
       { token: '{accrCertSeries}', label: 'Серія сертифіката' },
       { token: '{accrCertNumber}', label: 'Номер сертифіката' },
-      { token: '{accrCertDate}', label: 'Дата сертифіката' },
+      { token: '{accrCertDate}', label: 'Дата сертифіката (ДД/ММ/РРРР)' },
       { token: '{accrProtocolNumber}', label: '№ протоколу' },
       { token: '{accreditationName}', label: 'Орган акредитації (укр.)' },
       { token: '{accreditationNameEn}', label: 'Орган акредитації (англ.)' },

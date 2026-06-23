@@ -107,6 +107,24 @@ export interface GenerateScheduleResultDto {
   warnings: string[]
 }
 
+export interface GenerateAllGroupResultDto {
+  groupId: string
+  groupName: string
+  /** Рільний номер семестру для цієї групи. */
+  semesterNumber: number
+  entries: number
+  warnings: string[]
+}
+
+export interface GenerateAllResultDto {
+  academicYear: string
+  /** Позиція семестру в навчальному році: 1 = осінній, 2 = весняний. */
+  term: number
+  groupsProcessed: number
+  totalEntries: number
+  results: GenerateAllGroupResultDto[]
+}
+
 export interface EligibleGroupDto {
   groupId: string
   groupName: string
@@ -133,6 +151,11 @@ export interface AvailableSubjectDto {
 
 export interface GenerateSchedulePayload {
   groupId: string
+  academicYear: string
+  semesterNumber: number
+}
+
+export interface GenerateAllPayload {
   academicYear: string
   semesterNumber: number
 }

@@ -1,17 +1,20 @@
 'use client'
 
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, Fragment, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   CalendarDays,
   CalendarRange,
+  CheckCircle2,
   Copy,
+  DoorOpen,
   Download,
+  Layers,
+  Loader2,
   Lock,
   Settings2,
   Sparkles,
-  Loader2,
-  CheckCircle2,
+  User,
 } from 'lucide-react'
 
 import {
@@ -28,8 +31,10 @@ import { useUser } from '@/store/auth.store'
 
 import {
   downloadScheduleIcs,
+  useAllSchedules,
   useAvailableSubjects,
   useEligibleGroups,
+  useGenerateAll,
   useGenerateSchedule,
   usePublishSchedule,
   useSchedule,
@@ -39,13 +44,22 @@ import {
 import {
   BELL_TIMES,
   HOMEROOM_BELL,
+  LESSON_TYPE_COLOR,
+  LESSON_TYPE_LABELS,
   WORKING_DAYS,
   isVisibleOnParity,
+  type LessonType,
+  type ScheduleClassroomRef,
+  type ScheduleDto,
   type ScheduleEntryDto,
+  type ScheduleSubstitutionDto,
+  type ScheduleTeacherRef,
+  type WeekParity,
 } from '../types'
 import { ScheduleCell } from './schedule-cell'
 import { ScheduleCopyDialog } from './schedule-copy-dialog'
 import { ScheduleEntryDialog } from './schedule-entry-dialog'
+import { ScheduleGenerateAllDialog } from './schedule-generate-all-dialog'
 import { ScheduleSettingsDialog } from './schedule-settings-dialog'
 
 const DISPATCHER_ROLES = [
@@ -54,6 +68,8 @@ const DISPATCHER_ROLES = [
   'DIRECTOR',
   'ADMINISTRATOR',
 ]
+
+const ALL_GROUPS_SENTINEL = '__all__'
 
 /** Поточний навчальний рік: з вересня — новий. */
 function currentAcademicYear(): string {
@@ -69,6 +85,12 @@ const YEAR_OPTIONS: string[] = (() => {
     return `${y}-${y + 1}`
   })
 })()
+
+function isSemester2Passed(academicYear: string): boolean {
+  const endYear = Number(academicYear.split('-')[1])
+  const semester2End = new Date(endYear, 5, 30)
+  return new Date() > semester2End
+}
 
 export function ScheduleBuilderClient() {
   const user = useUser()
@@ -86,22 +108,30 @@ export function ScheduleBuilderClient() {
 
   const { data: groups = [], isLoading: groupsLoading } = useEligibleGroups(academicYear)
   const selectedGroup = groups.find((g) => g.groupId === groupId)
+  const isAllGroups = groupId === ALL_GROUPS_SENTINEL
 
   // Семестри з РНП обраної групи.
   const semesterOptions = selectedGroup?.semesterNumbers ?? []
   const effectiveSemester =
     semester ?? semesterOptions[0] ?? 1
 
+  // Блокування змін після завершення 2-го семестру.
+  const semesterLocked = isSemester2Passed(academicYear)
+
   const { data: response, isLoading: scheduleLoading } = useSchedule(
-    groupId,
+    isAllGroups ? '' : groupId,
     academicYear,
     effectiveSemester,
   )
   const { data: subjects = [] } = useAvailableSubjects(
-    groupId,
+    isAllGroups ? '' : groupId,
     academicYear,
     effectiveSemester,
     dialogOpen,
+  )
+  const { data: allSchedules = [], isLoading: allSchedulesLoading } = useAllSchedules(
+    academicYear,
+    isAllGroups,
   )
 
   const generateMut = useGenerateSchedule()
@@ -111,6 +141,7 @@ export function ScheduleBuilderClient() {
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [copyOpen, setCopyOpen] = useState(false)
+  const [generateAllOpen, setGenerateAllOpen] = useState(false)
   const isAdmin = user?.role === 'ADMINISTRATOR'
 
   const schedule = response?.schedule ?? null
@@ -118,7 +149,7 @@ export function ScheduleBuilderClient() {
   const hasConflicts = entries.some((e) => e.conflicts.length > 0)
 
   function setHomeroomDay(day: number) {
-    if (!groupId) return
+    if (!groupId || semesterLocked) return
     const next = schedule?.homeroomDayOfWeek === day ? null : day
     homeroomMut.mutate({
       groupId,
@@ -158,12 +189,14 @@ export function ScheduleBuilderClient() {
   }
 
   function openAdd(day: number, slot: number) {
+    if (semesterLocked) return
     setEditEntry(undefined)
     setDraftCell({ day, slot })
     setDialogOpen(true)
   }
 
   function openEdit(entry: ScheduleEntryDto) {
+    if (semesterLocked) return
     setEditEntry(entry)
     setDraftCell(undefined)
     setDialogOpen(true)
@@ -174,15 +207,25 @@ export function ScheduleBuilderClient() {
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
+      {semesterLocked && (
+        <div className="flex items-center gap-2 rounded-md border border-amber-300/60 bg-amber-50 dark:border-amber-700/40 dark:bg-amber-950/30 p-3">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <p className="text-xs text-amber-800 dark:text-amber-200">
+            2-й семестр навчального року {academicYear} завершено. Зміна розкладу заблокована.
+          </p>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             Конструктор розкладу
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            {selectedGroup
-              ? `${selectedGroup.groupName} • ${academicYear} • семестр ${effectiveSemester}`
-              : 'Автоматичне складання розкладу з робочого навчального плану'}
+            {isAllGroups
+              ? `${academicYear} • Всі групи`
+              : selectedGroup
+                ? `${selectedGroup.groupName} • ${academicYear} • семестр ${effectiveSemester}`
+                : 'Автоматичне складання розкладу з робочого навчального плану'}
           </p>
         </div>
 
@@ -197,6 +240,16 @@ export function ScheduleBuilderClient() {
               <Settings2 className="w-4 h-4" />
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setGenerateAllOpen(true)}
+            title={semesterLocked ? '2-й семестр завершено' : 'Згенерувати розклад одразу всім групам'}
+            disabled={semesterLocked}
+          >
+            <Layers className="w-4 h-4 mr-1.5" />
+            Згенерувати всім
+          </Button>
           {groupId && selectedGroup?.hasWorkingCurriculum && (
             <>
               {schedule && (
@@ -205,7 +258,8 @@ export function ScheduleBuilderClient() {
                     variant="outline"
                     size="sm"
                     onClick={() => setCopyOpen(true)}
-                    title="Скопіювати розклад як шаблон"
+                    title={semesterLocked ? '2-й семестр завершено' : 'Скопіювати розклад як шаблон'}
+                    disabled={semesterLocked}
                   >
                     <Copy className="w-4 h-4 mr-1.5" />
                     Копіювати
@@ -229,7 +283,7 @@ export function ScheduleBuilderClient() {
                 onClick={() =>
                   generateMut.mutate({ groupId, academicYear, semesterNumber: effectiveSemester })
                 }
-                disabled={generateMut.isPending}
+                disabled={generateMut.isPending || semesterLocked}
               >
                 {generateMut.isPending ? (
                   <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
@@ -250,12 +304,15 @@ export function ScheduleBuilderClient() {
                   }
                   disabled={
                     publishMut.isPending ||
+                    semesterLocked ||
                     (schedule.status !== 'PUBLISHED' && hasConflicts)
                   }
                   title={
-                    schedule.status !== 'PUBLISHED' && hasConflicts
-                      ? 'Спочатку виправте конфлікти'
-                      : undefined
+                    semesterLocked
+                      ? '2-й семестр завершено'
+                      : schedule.status !== 'PUBLISHED' && hasConflicts
+                        ? 'Спочатку виправте конфлікти'
+                        : undefined
                   }
                 >
                   <CheckCircle2 className="w-4 h-4 mr-1.5" />
@@ -285,6 +342,9 @@ export function ScheduleBuilderClient() {
                 <SelectValue placeholder="— Оберіть групу —" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value={ALL_GROUPS_SENTINEL}>
+                  Всі групи
+                </SelectItem>
                 {groups.map((g) => (
                   <SelectItem key={g.groupId} value={g.groupId}>
                     {g.groupName}
@@ -364,7 +424,15 @@ export function ScheduleBuilderClient() {
       </div>
 
       {/* ── Body ── */}
-      {!groupId ? (
+      {isAllGroups ? (
+        <AllGroupsView
+          groups={groups}
+          allSchedules={allSchedules}
+          isLoading={allSchedulesLoading}
+          academicYear={academicYear}
+          semesterLocked={semesterLocked}
+        />
+      ) : !groupId ? (
         <EmptyHint
           icon={<CalendarRange className="w-10 h-10 opacity-30" />}
           text="Оберіть групу, щоб переглянути або скласти розклад"
@@ -386,36 +454,48 @@ export function ScheduleBuilderClient() {
 
           {!schedule ? (
             <div className="rounded-lg border border-border bg-card p-10 flex flex-col items-center gap-3 text-center">
-              <Sparkles className="w-10 h-10 text-primary/40" />
-              <p className="font-semibold">Розклад ще не складено</p>
-              <p className="text-sm text-muted-foreground max-w-sm">
-                Натисніть «Згенерувати», щоб автоматично скласти розклад з РНП та
-                педагогічного навантаження, або додайте заняття вручну.
-              </p>
-              <Button
-                onClick={() =>
-                  generateMut.mutate({
-                    groupId,
-                    academicYear,
-                    semesterNumber: effectiveSemester,
-                  })
-                }
-                disabled={generateMut.isPending}
-              >
-                {generateMut.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4 mr-1.5" />
-                )}
-                Згенерувати розклад
-              </Button>
+              {semesterLocked ? (
+                <>
+                  <Lock className="w-10 h-10 text-amber-500/60" />
+                  <p className="font-semibold">2-й семестр завершено</p>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    Розклад змінювати не можна, оскільки 2-й семестр навчального року {academicYear} вже пройшов.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-10 h-10 text-primary/40" />
+                  <p className="font-semibold">Розклад ще не складено</p>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    Натисніть «Згенерувати», щоб автоматично скласти розклад з РНП та
+                    педагогічного навантаження, або додайте заняття вручну.
+                  </p>
+                  <Button
+                    onClick={() =>
+                      generateMut.mutate({
+                        groupId,
+                        academicYear,
+                        semesterNumber: effectiveSemester,
+                      })
+                    }
+                    disabled={generateMut.isPending}
+                  >
+                    {generateMut.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 mr-1.5" />
+                    )}
+                    Згенерувати розклад
+                  </Button>
+                </>
+              )}
             </div>
           ) : (
             <ScheduleGrid
               cellIndex={cellIndex}
               onAdd={openAdd}
               onEdit={openEdit}
-              onSwap={(a, b) => swapMut.mutate({ entryAId: a, entryBId: b })}
+              onSwap={(a, b) => { if (!semesterLocked) swapMut.mutate({ entryAId: a, entryBId: b }) }}
               hasConflicts={hasConflicts}
               homeroomDay={schedule.homeroomDayOfWeek}
               onSetHomeroomDay={setHomeroomDay}
@@ -437,6 +517,13 @@ export function ScheduleBuilderClient() {
       )}
 
       <ScheduleSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+
+      <ScheduleGenerateAllDialog
+        open={generateAllOpen}
+        onOpenChange={setGenerateAllOpen}
+        academicYear={academicYear}
+        defaultSemester={effectiveSemester}
+      />
 
       {schedule && (
         <ScheduleCopyDialog
@@ -629,4 +716,414 @@ function WarningBanner({ text }: { text: string }) {
       <p className="text-sm text-amber-800 dark:text-amber-200">{text}</p>
     </div>
   )
+}
+
+// ─── All Groups View ──────────────────────────────────────────────────────────
+
+interface FlatEntry {
+  id: string
+  groupId: string
+  groupName: string
+  dayOfWeek: number
+  slotNumber: number
+  weekParity: WeekParity
+  lessonType: LessonType
+  subgroupNumber: number | null
+  curriculumComponentTermId: string
+  componentCode: string | null
+  subjectName: string
+  teacher: ScheduleTeacherRef | null
+  classroom: ScheduleClassroomRef | null
+  onlineUrl: string | null
+  substitutions: ScheduleSubstitutionDto[]
+  conflicts: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+function AllGroupsView({
+  groups,
+  allSchedules,
+  isLoading,
+  academicYear,
+  semesterLocked,
+}: {
+  groups: { groupId: string; groupName: string; hasWorkingCurriculum: boolean; semesterNumbers: number[] }[]
+  allSchedules: ScheduleDto[]
+  isLoading: boolean
+  academicYear: string
+  semesterLocked: boolean
+}) {
+  const generateAll = useGenerateAll()
+
+  const [parityView, setParityView] = useState<'ODD' | 'EVEN'>('ODD')
+  const [selectedSemester, setSelectedSemester] = useState<number>(1)
+  const [addForGroup, setAddForGroup] = useState<string | null>(null)
+  const [editEntry, setEditEntry] = useState<FlatEntry | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [draftCell, setDraftCell] = useState<{ day: number; slot: number }>()
+
+  const dialogGroupId = addForGroup ?? editEntry?.groupId ?? ''
+  const dialogGroup = groups.find((g) => g.groupId === dialogGroupId)
+  const dialogRealSemester = dialogGroup?.semesterNumbers[selectedSemester - 1] ?? selectedSemester
+
+  const { data: subjects = [] } = useAvailableSubjects(
+    dialogGroupId,
+    academicYear,
+    dialogRealSemester,
+    dialogOpen && (!!addForGroup || !!editEntry),
+  )
+
+  const activeGroups = useMemo(() => {
+    const positionIndex = selectedSemester - 1
+    const groupIds = new Set<string>()
+    for (const g of groups) {
+      const realSemester = g.semesterNumbers[positionIndex]
+      if (realSemester === undefined) continue
+      const hasSchedule = allSchedules.some(
+        (s) => s.groupId === g.groupId && s.semesterNumber === realSemester && s.entries.length > 0,
+      )
+      if (hasSchedule) groupIds.add(g.groupId)
+    }
+    return groups.filter((g) => groupIds.has(g.groupId))
+  }, [groups, allSchedules, selectedSemester])
+
+  const flatEntries = useMemo<FlatEntry[]>(() => {
+    const positionIndex = selectedSemester - 1
+    const result: FlatEntry[] = []
+    for (const s of allSchedules) {
+      const g = groups.find((gr) => gr.groupId === s.groupId)
+      const realSemester = g?.semesterNumbers[positionIndex]
+      if (realSemester === undefined || s.semesterNumber !== realSemester) continue
+      for (const e of s.entries) {
+        result.push({ ...e, groupId: s.groupId, groupName: s.groupName })
+      }
+    }
+    return result
+  }, [allSchedules, selectedSemester, groups])
+
+  const entryIndex = useMemo(() => {
+    const map = new Map<string, FlatEntry>()
+    for (const e of flatEntries) {
+      if (!isVisibleOnParity(e.weekParity, parityView)) continue
+      const key = `${e.groupId}:${e.dayOfWeek}:${e.slotNumber}`
+      map.set(key, e)
+    }
+    return map
+  }, [flatEntries, parityView])
+
+  const semesterPositions = [1, 2]
+
+  const publishedCount = allSchedules.filter((s) => s.status === 'PUBLISHED').length
+
+  function openAdd(day: number, slot: number, groupId: string) {
+    if (semesterLocked) return
+    setEditEntry(null)
+    setAddForGroup(groupId)
+    setDraftCell({ day, slot })
+    setDialogOpen(true)
+  }
+
+  function openEdit(entry: FlatEntry) {
+    if (semesterLocked) return
+    setEditEntry(entry)
+    setAddForGroup(null)
+    setDraftCell(undefined)
+    setDialogOpen(true)
+  }
+
+  function handleCloseDialog() {
+    setDialogOpen(false)
+    setEditEntry(null)
+    setAddForGroup(null)
+    setDraftCell(undefined)
+  }
+
+  const contextGroup = dialogGroup
+
+  if (isLoading) {
+    return <Skeleton className="h-[420px] w-full" />
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          size="sm"
+          onClick={() => generateAll.mutate({ academicYear, semesterNumber: selectedSemester })}
+          disabled={generateAll.isPending || semesterLocked}
+        >
+          {generateAll.isPending ? (
+            <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+          ) : (
+            <Sparkles className="w-4 h-4 mr-1.5" />
+          )}
+          Згенерувати всім
+        </Button>
+
+        {semesterPositions.length > 0 && (
+          <Select value={String(selectedSemester)} onValueChange={(v) => setSelectedSemester(Number(v))}>
+            <SelectTrigger className="h-9 w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {semesterPositions.map((s) => (
+                <SelectItem key={s} value={String(s)}>
+                  Семестр {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        <div className="flex rounded-md border border-border p-0.5 h-9">
+          {(['ODD', 'EVEN'] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setParityView(p)}
+              className={cn(
+                'px-3 text-sm rounded-[5px] transition-colors',
+                parityView === p
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {p === 'ODD' ? 'Непарний' : 'Парний'}
+            </button>
+          ))}
+        </div>
+
+        <span className="text-xs text-muted-foreground">
+          Груп: {activeGroups.length} · Опубліковано: {publishedCount}
+        </span>
+      </div>
+
+      {/* Schedule table */}
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full border-collapse text-xs">
+          <thead>
+            {/* Group headers row */}
+            <tr className="bg-muted/50">
+              <th
+                rowSpan={2}
+                className="px-1 py-2 text-center font-medium text-muted-foreground border border-border w-[36px]"
+              >
+                День
+              </th>
+              <th
+                rowSpan={2}
+                className="px-1 py-2 text-center font-medium text-muted-foreground border border-border w-[54px]"
+              >
+                Час
+              </th>
+              {activeGroups.map((g) => (
+                <th
+                  key={g.groupId}
+                  colSpan={3}
+                  className="px-2 py-2 text-center font-semibold text-sm border border-border border-l-2"
+                  style={{ borderLeftColor: stringToColor(g.groupName) }}
+                >
+                  <span className="flex items-center justify-center gap-1.5">
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: stringToColor(g.groupName) }}
+                    />
+                    {g.groupName}
+                  </span>
+                </th>
+              ))}
+            </tr>
+            {/* Sub-headers row: ОК | Ауд. | Викладач */}
+            <tr className="bg-muted/30">
+              {activeGroups.map((g) => (
+                <Fragment key={g.groupId}>
+                  <th className="px-1.5 py-1 text-[10px] font-medium text-muted-foreground border border-border border-l-2 text-left" style={{ borderLeftColor: stringToColor(g.groupName) }}>
+                    ОК
+                  </th>
+                  <th className="px-1.5 py-1 text-[10px] font-medium text-muted-foreground border border-border text-center w-[50px]">
+                    Ауд.
+                  </th>
+                  <th className="px-1.5 py-1 text-[10px] font-medium text-muted-foreground border border-border text-left w-[100px]">
+                    Викладач
+                  </th>
+                </Fragment>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {WORKING_DAYS.map((day) => (
+              <Fragment key={day.day}>
+                {BELL_TIMES.map((bell, bellIdx) => {
+                  const entryKey = (gid: string) => `${gid}:${day.day}:${bell.slot}`
+                  return (
+                    <tr
+                      key={`${day.day}:${bell.slot}`}
+                      className={cn(
+                        'hover:bg-muted/20',
+                        bellIdx === 0 && 'border-t-2 border-t-border',
+                      )}
+                    >
+                      {/* Day name cell — rowSpan=4 */}
+                      {bellIdx === 0 && (
+                        <td
+                          rowSpan={BELL_TIMES.length}
+                          className="px-1 py-1 text-xs font-bold text-foreground border border-border bg-muted/20 align-middle text-center whitespace-nowrap"
+                        >
+                          {day.short}
+                        </td>
+                      )}
+                      {/* Time cell — per row */}
+                      <td className="px-1 py-1.5 border border-border bg-muted/10 align-top whitespace-nowrap">
+                        <div className="text-[11px] font-bold text-foreground">{bell.slot} пара</div>
+                        <div className="text-[9px] text-muted-foreground tabular-nums leading-tight">
+                          {bell.start}–{bell.end}
+                        </div>
+                      </td>
+                      {/* Group cells */}
+                      {activeGroups.map((g) => {
+                        const entry = entryIndex.get(entryKey(g.groupId))
+                        return (
+                          <Fragment key={g.groupId}>
+                            {/* ОК — entry card */}
+                            <td
+                              className={cn(
+                                'px-1.5 py-1 border border-border border-l-2 align-top',
+                                entry?.conflicts?.length ? 'bg-destructive/5' : '',
+                              )}
+                              style={{ borderLeftColor: stringToColor(g.groupName) }}
+                            >
+                              {entry ? (
+                                <button
+                                  type="button"
+                                  onClick={() => openEdit(entry)}
+                                  title={entry.conflicts.length ? entry.conflicts.join('\n') : 'Натисніть для редагування'}
+                                  className="w-full text-left rounded-md hover:bg-muted/40 transition-colors p-1.5"
+                                >
+                                  <div className="flex items-start justify-between gap-1 mb-0.5">
+                                    <span className="font-medium text-[11px] leading-snug line-clamp-2">
+                                      {entry.subjectName}
+                                    </span>
+                                    <span
+                                      className={cn(
+                                        'shrink-0 text-[8px] font-semibold px-1 py-0.5 rounded-full leading-none',
+                                        LESSON_TYPE_COLOR[entry.lessonType],
+                                      )}
+                                    >
+                                      {LESSON_TYPE_LABELS[entry.lessonType]}
+                                    </span>
+                                  </div>
+                                  {entry.subgroupNumber !== null && (
+                                    <div className="text-[9px] text-amber-600 dark:text-amber-400 mb-0.5">
+                                      {entry.subgroupNumber} підгрупа
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                    <User className="w-2.5 h-2.5 shrink-0 text-primary" />
+                                    <span className="truncate">{entry.teacher?.shortName ?? '—'}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                    <DoorOpen className="w-2.5 h-2.5 shrink-0 text-primary" />
+                                    <span>{entry.classroom ? entry.classroom.number : '—'}</span>
+                                  </div>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => openAdd(day.day, bell.slot, g.groupId)}
+                                  className="w-full h-full min-h-[56px] flex items-center justify-center text-muted-foreground/20 hover:text-primary hover:bg-primary/5 rounded-md transition-colors"
+                                >
+                                  <span className="text-[10px]">+</span>
+                                </button>
+                              )}
+                            </td>
+                            {/* Аудиторія */}
+                            <td
+                              className="px-1.5 py-1 border border-border text-center tabular-nums align-top text-[11px]"
+                              onClick={() => entry ? openEdit(entry) : openAdd(day.day, bell.slot, g.groupId)}
+                            >
+                              {entry?.classroom?.number ?? ''}
+                            </td>
+                            {/* Викладач */}
+                            <td
+                              className="px-1.5 py-1 border border-border align-top text-[11px]"
+                              onClick={() => entry ? openEdit(entry) : openAdd(day.day, bell.slot, g.groupId)}
+                            >
+                              {entry?.teacher?.shortName ?? ''}
+                            </td>
+                          </Fragment>
+                        )
+                      })}
+                    </tr>
+                  )
+                })}
+              </Fragment>
+            ))}
+            {/* Виховна година row */}
+            <tr className="bg-muted/20 border-t-2 border-t-border">
+              <td className="px-1 py-1.5 text-xs font-semibold text-muted-foreground border border-border text-center">
+                Вих.
+              </td>
+              <td className="px-1 py-1.5 text-[9px] text-muted-foreground border border-border align-top whitespace-nowrap">
+                <div className="font-semibold">—</div>
+                <div className="tabular-nums leading-tight">{HOMEROOM_BELL.start}–{HOMEROOM_BELL.end}</div>
+              </td>
+              {activeGroups.map((g) => {
+                const positionIndex = selectedSemester - 1
+                const realSemester = g.semesterNumbers[positionIndex]
+                const schedule = allSchedules.find(
+                  (s) => s.groupId === g.groupId && s.semesterNumber === realSemester,
+                )
+                const homeroomDay = schedule?.homeroomDayOfWeek
+                return (
+                  <Fragment key={g.groupId}>
+                    <td
+                      colSpan={3}
+                      className="px-2 py-2 border border-border border-l-2 text-center text-[11px]"
+                      style={{ borderLeftColor: stringToColor(g.groupName) }}
+                    >
+                      {homeroomDay ? (
+                        <span className="text-primary font-medium">
+                          {WORKING_DAYS.find((d) => d.day === homeroomDay)?.short}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground/30">—</span>
+                      )}
+                    </td>
+                  </Fragment>
+                )
+              })}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Entry dialog */}
+      {dialogOpen && contextGroup && (
+        <ScheduleEntryDialog
+          open={dialogOpen}
+          onOpenChange={handleCloseDialog}
+          context={{
+            groupId: contextGroup.groupId,
+            academicYear,
+            semesterNumber: dialogRealSemester,
+          }}
+          subjects={subjects}
+          entry={editEntry ?? undefined}
+          defaultDay={draftCell?.day}
+          defaultSlot={draftCell?.slot}
+        />
+      )}
+    </div>
+  )
+}
+
+function stringToColor(str: string): string {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const hue = Math.abs(hash % 360)
+  return `hsl(${hue}, 55%, 45%)`
 }

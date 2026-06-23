@@ -10,7 +10,6 @@ import {
   Building2,
   Calendar,
   CalendarRange,
-  CalendarClock,
   ChevronDown,      // для стрілки subItems
   ClipboardList,
   ClipboardPen,
@@ -64,7 +63,6 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/academic-plans",   icon: Library,       label: "Навчальні плани" },
   { href: "/teacher-load",     icon: BookOpenCheck, label: "Педагогічне навантаження" },
   { href: "/schedule/builder", icon: CalendarRange, label: "Конструктор розкладу" },
-  { href: "/schedule/resources", icon: CalendarClock, label: "Розклад за ресурсом" },
   {
     href: "#",
     icon: Stamp,

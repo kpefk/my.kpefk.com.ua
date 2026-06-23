@@ -100,16 +100,25 @@ export function useBatchApplyTemplate() {
 export function useSyncEntryDocuments() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (batchId: string) =>
-      apiPost<{ updated: number; skipped: number }>(
-        ENDPOINTS.DIPLOMAS.BATCH_SYNC_ENTRY_DOCS(batchId),
-      ),
+    mutationFn: async (batchId: string) => {
+      // Паралельно: документи вступу (§6.2.2) + акредитація шаблонів
+      const [entryRes, accredRes] = await Promise.all([
+        apiPost<{ updated: number; skipped: number }>(
+          ENDPOINTS.DIPLOMAS.BATCH_SYNC_ENTRY_DOCS(batchId),
+        ),
+        apiPost<{ updated: number; skipped: number; notFound: number }>(
+          ENDPOINTS.DIPLOMAS.EDBO_ACCREDITATION_SYNC,
+        ),
+      ])
+      return { entry: entryRes, accreditation: accredRes }
+    },
     onSuccess: (r) => {
       void qc.invalidateQueries({ queryKey: diplomaKeys.all })
-      toast.success(
-        `Синхронізовано з ЄДЕБО: ${r.updated}` +
-          (r.skipped > 0 ? `, пропущено: ${r.skipped}` : ''),
-      )
+      const parts = [`документи: ${r.entry.updated}`]
+      if (r.entry.skipped > 0) parts.push(`пропущено: ${r.entry.skipped}`)
+      parts.push(`акредитація: ${r.accreditation.updated}`)
+      if (r.accreditation.notFound > 0) parts.push(`не знайдено: ${r.accreditation.notFound}`)
+      toast.success(`ЄДЕБО синхронізовано — ${parts.join(', ')}`)
     },
     onError: (e) => toast.error(err(e, 'Помилка синхронізації з ЄДЕБО')),
   })

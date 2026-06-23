@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Trash2, Users } from 'lucide-react'
 
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -35,7 +36,6 @@ import {
 } from '../api'
 import {
   BELL_TIMES,
-  LESSON_TYPE_LABELS,
   SUBSTITUTION_TYPE_LABELS,
   WEEK_PARITY_LABELS,
   WORKING_DAYS,
@@ -46,15 +46,6 @@ import {
   type SubstitutionType,
   type WeekParity,
 } from '../types'
-
-const ALL_LESSON_TYPES: LessonType[] = [
-  'LECTURE',
-  'PRACTICE',
-  'LAB',
-  'SEMINAR',
-  'CONSULTATION',
-  'SPRS',
-]
 
 const NO_SUBGROUP = 'none'
 const MAX_SPLIT = 3
@@ -100,7 +91,6 @@ export function ScheduleEntryDialog({
   const [dayOfWeek, setDayOfWeek] = useState(1)
   const [slotNumber, setSlotNumber] = useState(1)
   const [weekParity, setWeekParity] = useState<WeekParity>('EVERY')
-  const [onlineUrl, setOnlineUrl] = useState('')
 
   // Поділ на підгрупи: splitCount=1 → вся група; ≥2 → стільки паралельних занять.
   const [splitCount, setSplitCount] = useState(1)
@@ -122,7 +112,6 @@ export function ScheduleEntryDialog({
       setSubTeachers([entry.teacher?.id ?? '', '', ''])
       setSubRooms([entry.classroom?.id ?? '', '', ''])
       setEditSubgroup(entry.subgroupNumber ? String(entry.subgroupNumber) : NO_SUBGROUP)
-      setOnlineUrl(entry.onlineUrl ?? '')
     } else {
       setTermId('')
       setLessonType('LECTURE')
@@ -133,18 +122,8 @@ export function ScheduleEntryDialog({
       setSubTeachers(['', '', ''])
       setSubRooms(['', '', ''])
       setEditSubgroup(NO_SUBGROUP)
-      setOnlineUrl('')
     }
   }, [open, entry, defaultDay, defaultSlot])
-
-  const selectedSubject = useMemo(
-    () => subjects.find((s) => s.curriculumComponentTermId === termId),
-    [subjects, termId],
-  )
-
-  const lessonTypeOptions = selectedSubject
-    ? selectedSubject.lessonOptions.map((o) => o.lessonType)
-    : ALL_LESSON_TYPES
 
   const subjectOptions: ComboboxOption[] = subjects.map((s) => ({
     id: s.curriculumComponentTermId,
@@ -186,14 +165,6 @@ export function ScheduleEntryDialog({
     }
   }
 
-  function applyLessonType(value: LessonType) {
-    setLessonType(value)
-    if (isEdit) return
-    const opt = selectedSubject?.lessonOptions.find((o) => o.lessonType === value)
-    const def = opt?.defaultTeacher?.id ?? ''
-    setSubTeachers([def, def, def])
-  }
-
   const canSubmit = isEdit || termId !== ''
 
   function handleSubmit() {
@@ -209,7 +180,6 @@ export function ScheduleEntryDialog({
             subgroupNumber: editSubgroup === NO_SUBGROUP ? null : Number(editSubgroup),
             teacherId: subTeachers[0] || null,
             classroomId: subRooms[0] || null,
-            onlineUrl: onlineUrl.trim() || null,
           },
         },
         { onSuccess: () => onOpenChange(false) },
@@ -228,7 +198,6 @@ export function ScheduleEntryDialog({
       subgroupNumber: count > 1 ? i + 1 : null,
       teacherId: subTeachers[i] || null,
       classroomId: subRooms[i] || null,
-      onlineUrl: onlineUrl.trim() || null,
     }))
     createEntriesMut.mutate(payloads, { onSuccess: () => onOpenChange(false) })
   }
@@ -245,6 +214,14 @@ export function ScheduleEntryDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Редагувати заняття' : 'Додати заняття'}</DialogTitle>
+          <DialogDescription>
+            {WORKING_DAYS.find((d) => d.day === dayOfWeek)?.long ?? ''}
+            {', '}
+            {(() => {
+              const bell = BELL_TIMES.find((b) => b.slot === slotNumber)
+              return bell ? `${slotNumber} пара · ${bell.start}` : `${slotNumber} пара`
+            })()}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
@@ -268,84 +245,21 @@ export function ScheduleEntryDialog({
             )}
           </div>
 
-          {/* Тип + парність */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>Вид заняття</Label>
-              <Select value={lessonType} onValueChange={(v) => applyLessonType(v as LessonType)}>
-                <SelectTrigger className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {lessonTypeOptions.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {LESSON_TYPE_LABELS[t]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>Тиждень</Label>
-              <Select value={weekParity} onValueChange={(v) => setWeekParity(v as WeekParity)}>
-                <SelectTrigger className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(['EVERY', 'ODD', 'EVEN'] as WeekParity[]).map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {WEEK_PARITY_LABELS[p]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* День + пара */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>День</Label>
-              <Select value={String(dayOfWeek)} onValueChange={(v) => setDayOfWeek(Number(v))}>
-                <SelectTrigger className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {WORKING_DAYS.map((d) => (
-                    <SelectItem key={d.day} value={String(d.day)}>
-                      {d.long}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>Пара</Label>
-              <Select value={String(slotNumber)} onValueChange={(v) => setSlotNumber(Number(v))}>
-                <SelectTrigger className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {BELL_TIMES.map((b) => (
-                    <SelectItem key={b.slot} value={String(b.slot)}>
-                      {b.slot} пара ({b.start})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Онлайн-конференція (дистанційне/змішане заняття, ТЗ §3.6) */}
+          {/* Тиждень (чисельник/знаменник) */}
           <div className="space-y-1">
-            <Label>Посилання на онлайн-конференцію (необов'язково)</Label>
-            <Input
-              type="url"
-              inputMode="url"
-              placeholder="https://meet… / zoom…"
-              value={onlineUrl}
-              onChange={(e) => setOnlineUrl(e.target.value)}
-            />
+            <Label>Тиждень</Label>
+            <Select value={weekParity} onValueChange={(v) => setWeekParity(v as WeekParity)}>
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(['EVERY', 'ODD', 'EVEN'] as WeekParity[]).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {WEEK_PARITY_LABELS[p]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* ── Поділ на підгрупи ── */}
