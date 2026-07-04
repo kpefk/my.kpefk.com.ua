@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import { apiGet, apiPatch, apiPost } from '@/lib/api/client'
+import { apiDelete, apiGet, apiPatch, apiPost } from '@/lib/api/client'
 import { ApiError } from '@/types/api'
 import { ENDPOINTS } from '@/lib/api/endpoints'
 
@@ -11,12 +11,14 @@ import type {
   AllTeachersLoadDto,
   ConfirmAssignmentsPayload,
   ConfirmResult,
+  DiplomaStudentRowDto,
   LessonAssignmentDto,
   MyTeacherLoadDto,
   RevokeAssignmentsPayload,
   RevokeResult,
   SetDistributionModePayload,
   SubjectAssignmentDto,
+  SupervisionRole,
   TeacherLoadDto,
 } from '../types'
 
@@ -33,6 +35,8 @@ export const teacherLoadKeys = {
     [...teacherLoadKeys.all, 'by-teacher', teacherId, academicYear ?? ''] as const,
   assignments: (workingCurriculumId: string) =>
     [...teacherLoadKeys.all, 'subject-assignments', workingCurriculumId] as const,
+  diplomaSupervision: (workingCurriculumId: string, componentTermId: string) =>
+    [...teacherLoadKeys.all, 'diploma-supervision', workingCurriculumId, componentTermId] as const,
 }
 
 // ─── My load + manager overview ───────────────────────────────────────────────
@@ -253,6 +257,63 @@ export function useRevokeAssignments() {
     },
     onError: (err: unknown) => {
       const msg = err instanceof ApiError ? err.message : 'Помилка скасування наказу'
+      toast.error(msg)
+    },
+  })
+}
+
+// ─── Diploma supervision (п.20 Наказу №686) ──────────────────────────────────
+
+export function useDiplomaSupervisionAssignments(
+  workingCurriculumId: string,
+  componentTermId: string,
+) {
+  return useQuery({
+    queryKey: teacherLoadKeys.diplomaSupervision(workingCurriculumId, componentTermId),
+    queryFn: () =>
+      apiGet<DiplomaStudentRowDto[]>(
+        `${ENDPOINTS.TEACHER_LOAD.DIPLOMA_SUPERVISION}?workingCurriculumId=${encodeURIComponent(workingCurriculumId)}&componentTermId=${encodeURIComponent(componentTermId)}`,
+      ),
+    staleTime: 30_000,
+    enabled: workingCurriculumId !== '' && componentTermId !== '',
+  })
+}
+
+export function useAssignDiplomaSupervisor() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: {
+      studentId: string
+      curriculumComponentTermId: string
+      workingCurriculumId: string
+      teacherId: string
+      role: SupervisionRole
+    }) => apiPost<{ warnings: string[] }>(ENDPOINTS.TEACHER_LOAD.DIPLOMA_SUPERVISION, payload),
+    onSuccess: (result, { workingCurriculumId, curriculumComponentTermId }) => {
+      result.warnings.forEach((w) => toast.warning(w))
+      void queryClient.invalidateQueries({
+        queryKey: teacherLoadKeys.diplomaSupervision(workingCurriculumId, curriculumComponentTermId),
+      })
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof ApiError ? err.message : 'Помилка призначення керівника'
+      toast.error(msg)
+    },
+  })
+}
+
+export function useUnassignDiplomaSupervisor() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id }: { id: string; workingCurriculumId: string; componentTermId: string }) =>
+      apiDelete<void>(ENDPOINTS.TEACHER_LOAD.DIPLOMA_SUPERVISION_ITEM(id)),
+    onSuccess: (_data, { workingCurriculumId, componentTermId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: teacherLoadKeys.diplomaSupervision(workingCurriculumId, componentTermId),
+      })
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof ApiError ? err.message : 'Помилка зняття призначення'
       toast.error(msg)
     },
   })

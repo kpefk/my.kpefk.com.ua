@@ -60,14 +60,21 @@ function fmt(v: number): React.ReactNode {
   return v === 0 ? DASH : <span className="font-mono">{v}</span>
 }
 
+/** Форматує дробові години (заліки/екзамени/контрольні) з округленням до 1 знаку. */
+function fmtDec(v: number): React.ReactNode {
+  if (v === 0) return DASH
+  const rounded = Math.round(v * 10) / 10
+  return <span className="font-mono">{rounded % 1 === 0 ? rounded : rounded.toFixed(1)}</span>
+}
+
 // ─── Column number row ────────────────────────────────────────────────────────
 
 function ColNumbers() {
   // Columns 1-5 are occupied by rowSpan=3 cells from Row 1 (Код, Назва, Сем., Груп, Студ.)
-  // This row only needs cells for columns 6-16 (11 cells).
+  // This row only needs cells for columns 6-19 (14 cells).
   return (
     <tr>
-      {Array.from({ length: 11 }, (_, i) => (
+      {Array.from({ length: 15 }, (_, i) => (
         <td
           key={i + 6}
           className="py-0.5 text-center text-[9px] font-mono text-muted-foreground/50 border-b border-border bg-card"
@@ -102,7 +109,7 @@ function TeacherBlock({ entry }: { entry: TeacherLoadEntryDto }) {
       {/* ── Teacher header ── */}
       <tr>
         <td
-          colSpan={16}
+          colSpan={20}
           className={cn(
             'px-3 py-1.5 border-b border-border',
             'bg-blue-50/40 dark:bg-blue-950/20',
@@ -221,6 +228,10 @@ function TeacherBlock({ entry }: { entry: TeacherLoadEntryDto }) {
             <TD className="text-center">{fmt(tot.seminar)}</TD>
             <TD className="text-center">{fmt(tot.independent)}</TD>
             <TD className="text-center">{fmt(tot.examPrep)}</TD>
+            <TD className="text-center">{fmtDec(tot.controlAndExam)}</TD>
+            <TD className="text-center">{fmtDec(tot.practiceSupervision)}</TD>
+            <TD className="text-center">{fmtDec(tot.courseWorkSupervision)}</TD>
+            <TD className="text-center">{fmtDec(tot.diplomaCommittee)}</TD>
 
             {/* Разом — highlighted */}
             <TD
@@ -240,7 +251,7 @@ function TeacherBlock({ entry }: { entry: TeacherLoadEntryDto }) {
       {/* ── Teacher subtotal ── */}
       <tr className="bg-muted/30">
         <TD
-          colSpan={15}
+          colSpan={19}
           className="text-right text-muted-foreground font-medium pr-3 border-t border-border/50"
         >
           Разом по викладачу:
@@ -330,7 +341,7 @@ export function TeacherLoadTable({ workingCurriculumId }: { workingCurriculumId:
             <TH colSpan={5} className="text-center border-x border-border/50 border-b-0">
               Годин на 1 групу
             </TH>
-            <TH colSpan={6} className="text-center border-b-0">
+            <TH colSpan={10} className="text-center border-b-0">
               Разом годин (навантаження)
             </TH>
           </tr>
@@ -345,12 +356,32 @@ export function TeacherLoadTable({ workingCurriculumId }: { workingCurriculumId:
             <TH className="text-center border-r border-border/50 [writing-mode:vertical-rl] rotate-180 w-8">
               Підгот.
             </TH>
-            {/* Total — 6 */}
+            {/* Total — 9 */}
             <TH className="text-center [writing-mode:vertical-rl] rotate-180 w-8">Лекц.</TH>
             <TH className="text-center [writing-mode:vertical-rl] rotate-180 w-8">Практ./Лаб.</TH>
             <TH className="text-center [writing-mode:vertical-rl] rotate-180 w-8">Семін.</TH>
             <TH className="text-center [writing-mode:vertical-rl] rotate-180 w-8">СПРС</TH>
             <TH className="text-center [writing-mode:vertical-rl] rotate-180 w-8">Підгот.</TH>
+            <TH className="text-center [writing-mode:vertical-rl] rotate-180 w-8">
+              <span title="Заліки/екзамени + перевірка контрольних робіт (Наказ МОН №686, п.11/12/14/16)" className="cursor-default">
+                Зал/Екз/Контр.
+              </span>
+            </TH>
+            <TH className="text-center [writing-mode:vertical-rl] rotate-180 w-8">
+              <span title="Керівництво практикою (Наказ МОН №686, п.17/18)" className="cursor-default">
+                Практика
+              </span>
+            </TH>
+            <TH className="text-center [writing-mode:vertical-rl] rotate-180 w-8">
+              <span title="Керівництво курсовими роботами/проєктами (Наказ МОН №686, п.13)" className="cursor-default">
+                Курсова/проєкт
+              </span>
+            </TH>
+            <TH className="text-center [writing-mode:vertical-rl] rotate-180 w-8">
+              <span title="Комісія захисту дипломних робіт (Наказ МОН №686, п.20)" className="cursor-default">
+                Комісія (захист)
+              </span>
+            </TH>
             <TH className="text-center [writing-mode:vertical-rl] rotate-180 w-10 font-bold text-foreground">
               Разом
             </TH>
@@ -370,7 +401,7 @@ export function TeacherLoadTable({ workingCurriculumId }: { workingCurriculumId:
         <tfoot>
           <tr className="bg-muted/40">
             <TD
-              colSpan={15}
+              colSpan={19}
               className="font-semibold text-right pr-3 border-t-2 border-border"
             >
               Загальне навантаження

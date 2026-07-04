@@ -21,6 +21,7 @@ const ALL_YEARS = 'all'
 
 import { AllTeachersTable } from './all-teachers-table'
 import { AssignmentTable } from './assignment-table'
+import { DiplomaSupervisionPanel } from './diploma-supervision-panel'
 import { TeacherLoadTable } from './teacher-load-table'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -39,11 +40,12 @@ const YEAR_OPTIONS: string[] = Array.from({ length: 6 }, (_, i) => {
   return `${y}-${y + 1}`
 })
 
-type Tab = 'summary' | 'assign' | 'all'
+type Tab = 'summary' | 'assign' | 'all' | 'diploma'
 
 const TABS: { id: Tab; label: string; needsWc: boolean }[] = [
   { id: 'assign', label: 'Призначення викладачів', needsWc: true },
   { id: 'summary', label: 'Зведення по плану', needsWc: true },
+  { id: 'diploma', label: 'Керівництво дипломними', needsWc: true },
   { id: 'all', label: 'Усі викладачі', needsWc: false },
 ]
 
@@ -176,6 +178,8 @@ export function TeacherLoadPage() {
             </div>
           ) : tab === 'assign' ? (
             <AssignmentTable workingCurriculumId={effectiveWcId} versionId={selectedVersionId} />
+          ) : tab === 'diploma' ? (
+            <DiplomaSupervisionPanel workingCurriculumId={effectiveWcId} />
           ) : (
             <TeacherLoadTable workingCurriculumId={effectiveWcId} />
           )}

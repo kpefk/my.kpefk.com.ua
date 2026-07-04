@@ -26,6 +26,18 @@ export interface TotalHoursDto {
   seminar: number
   independent: number
   examPrep: number
+  /** Заліки/екзамени + перевірка контрольних робіт (Наказ МОН №686, п.11/12/14/16) */
+  controlAndExam: number
+  /** Керівництво практикою (Наказ МОН №686, п.17/18). Лише для componentType=PRACTICE. */
+  practiceSupervision: number
+  /** Керівництво курсовими роботами/проєктами (Наказ МОН №686, п.13). */
+  courseWorkSupervision: number
+  /**
+   * Комісія захисту дипломних робіт (Наказ МОН №686, п.20). Персональне керівництво
+   * дипломом (16 год/студента) сюди НЕ входить — рахується окремо, per-student
+   * (вкладка «Керівництво дипломними»).
+   */
+  diplomaCommittee: number
   subtotal: number
 }
 
@@ -103,17 +115,62 @@ export interface AllTeachersLoadDto {
 
 // ─── Assignment DTOs (two-level model) ───────────────────────────────────────
 
-export type LessonType = 'LECTURE' | 'PRACTICE' | 'LAB' | 'SEMINAR' | 'CONSULTATION' | 'SPRS'
+export type LessonType =
+  | 'LECTURE'
+  | 'PRACTICE'
+  | 'LAB'
+  | 'SEMINAR'
+  | 'CONSULTATION'
+  | 'SPRS'
+  | 'SEMESTER_CONTROL'
+  | 'CONTROL_WORKS_CHECK'
+  | 'PRACTICE_SUPERVISION'
+  | 'COURSE_WORK_SUPERVISION'
+  | 'DIPLOMA_COMMITTEE'
+  | 'PRE_CONTROL_CONSULTATION'
 export type LoadStatus = 'DRAFT' | 'CONFIRMED'
 export type LoadDistributionMode = 'STREAM' | 'PER_GROUP'
 
 export const LESSON_TYPE_LABELS: Record<LessonType, string> = {
-  LECTURE:      'Лекції',
-  PRACTICE:     'Практичні',
-  LAB:          'Лабораторні',
-  SEMINAR:      'Семінарські',
-  CONSULTATION: 'Консультації',
-  SPRS:         'СПРС',
+  LECTURE:                 'Лекції',
+  PRACTICE:                'Практичні',
+  LAB:                     'Лабораторні',
+  SEMINAR:                 'Семінарські',
+  CONSULTATION:            'Консультації',
+  SPRS:                    'СПРС',
+  SEMESTER_CONTROL:        'Залік/Екзамен',
+  CONTROL_WORKS_CHECK:     'Контрольні роботи',
+  PRACTICE_SUPERVISION:    'Керівництво практикою',
+  COURSE_WORK_SUPERVISION: 'Керівництво курсовою/проєктом',
+  DIPLOMA_COMMITTEE:       'Комісія захисту дипломних робіт',
+  PRE_CONTROL_CONSULTATION: 'Консультації перед контролем',
+}
+
+// ─── Diploma supervision (п.20 Наказу №686) ──────────────────────────────────
+// Персональна прив'язка «студент → керівник/консультант», поза DRAFT/CONFIRMED workflow.
+
+export type SupervisionRole = 'SUPERVISOR' | 'CONSULTANT'
+
+export const SUPERVISION_ROLE_LABELS: Record<SupervisionRole, string> = {
+  SUPERVISOR: 'Керівник',
+  CONSULTANT: 'Консультант',
+}
+
+/** Одне персональне призначення (керівник або консультант) на дипломну роботу студента. */
+export interface DiplomaAssignmentDto {
+  id: string
+  teacherId: string
+  teacherName: string
+  role: SupervisionRole
+  /** Обчислено: 16 / кількість призначених цьому студенту. */
+  hours: number
+}
+
+/** Один студент зі списку доступних для призначення керівника дипломної роботи. */
+export interface DiplomaStudentRowDto {
+  studentId: string
+  studentName: string
+  assignments: DiplomaAssignmentDto[]
 }
 
 /** Компактна відповідь про викладача (вкладена в assignment DTO) */

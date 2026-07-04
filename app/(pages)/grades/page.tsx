@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { GradesClient } from '@/components/grades/GradesClient'
+import { GradesClient } from '@/features/grades/components/GradesClient'
 
 export const metadata: Metadata = {
   title: 'Оцінки',

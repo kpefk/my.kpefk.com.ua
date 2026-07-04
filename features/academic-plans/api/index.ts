@@ -9,7 +9,6 @@ import { ApiError } from '@/types/api'
 
 import type {
   ComponentType,
-  ControlForm,
   CurriculumComponentDto,
   CurriculumComponentKind,
   CurriculumComponentTermDto,
@@ -21,6 +20,7 @@ import type {
   CurriculumVersionSummaryDto,
   EducationalProgramDto,
   ElectiveBlockDto,
+  ExamFormat,
   GroupCurriculumAssignmentDto,
   PracticeType,
   SpecialtyDto,
@@ -430,6 +430,13 @@ export function useUpdateWorkingComponentTerm() {
         weeklyPracticalHours: number | null
         /** undefined = не чіпати поточне призначення; null = зняти; string = призначити */
         teacherId?: string | null
+        controlWorksAuditoryCount?: number
+        controlWorksIndependentCount?: number
+        /** undefined = не чіпати; null = очистити; ExamFormat = встановити */
+        examFormat?: ExamFormat | null
+        /** undefined = не чіпати; null = очистити; number = встановити */
+        practiceDurationWeeks?: number | null
+        diplomaCommitteeSize?: number
       }
     }) =>
       apiPatch<WorkingComponentTermDto>(

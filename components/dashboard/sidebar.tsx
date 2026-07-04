@@ -19,6 +19,7 @@ import {
   GraduationCap,
   LayoutDashboard,
   Library,
+  MessageSquareText,
   School,
   ScrollText,
   Stamp,            // Генерація дипломів (основна)
@@ -53,6 +54,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/schedule",     icon: Calendar,      label: "Розклад занять" },
   { href: "/grades",       icon: BarChart3,     label: "Успішність" },
   { href: "/assignments",  icon: ClipboardList, label: "Завдання" },
+  { href: "/surveys",      icon: MessageSquareText, label: "Опитування" },
 
   // Для викладачів
   { href: "/attendance",   icon: UserCheck,     label: "Відвідуваність" },

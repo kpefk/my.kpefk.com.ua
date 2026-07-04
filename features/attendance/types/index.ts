@@ -98,3 +98,40 @@ export const ATTENDANCE_STATUS_COLOR: Record<AttendanceStatus, string> = {
 
 /** Порядок маркерів у рядку (Відсутній / Запізнився / Присутній — як у макеті). */
 export const ATTENDANCE_STATUS_ORDER: AttendanceStatus[] = ['ABSENT', 'LATE', 'PRESENT']
+
+// ─── Attendance Summary DTOs (mirror backend dto/attendance-summary.dto.ts) ──
+
+export interface AttendanceSummaryStudentDto {
+  studentId: string
+  fullName: string
+  totalLessons: number
+  attended: number
+  late: number
+  absent: number
+  attendancePercent: number
+  averageGrade: number | null
+}
+
+export interface AttendanceSummaryDto {
+  componentTermId: string
+  subjectName: string
+  students: AttendanceSummaryStudentDto[]
+}
+
+export interface StudentDisciplineSummaryDto {
+  componentTermId: string
+  subjectName: string
+  componentCode: string | null
+  totalLessons: number
+  attended: number
+  late: number
+  absent: number
+  attendancePercent: number
+  averageGrade: number | null
+}
+
+export interface StudentSemesterSummaryDto {
+  studentId: string
+  fullName: string
+  disciplines: StudentDisciplineSummaryDto[]
+}

@@ -75,12 +75,18 @@ const NAME_LEFT = NUM_W + CODE_W
 // ─── Lesson type columns ──────────────────────────────────────────────────────
 
 const LESSON_COLS: { type: LessonType; label: string; title: string }[] = [
-  { type: 'LECTURE',      label: 'Лек.',   title: 'Лекції' },
-  { type: 'PRACTICE',     label: 'Практ.', title: 'Практичні заняття' },
-  { type: 'LAB',          label: 'Лаб.',   title: 'Лабораторні заняття' },
-  { type: 'SEMINAR',      label: 'Семін.', title: 'Семінарські заняття' },
-  { type: 'CONSULTATION', label: 'Конс.',  title: 'Консультації' },
-  { type: 'SPRS',         label: 'СПРС',   title: 'Самостійна робота студентів' },
+  { type: 'LECTURE',             label: 'Лек.',   title: 'Лекції' },
+  { type: 'PRACTICE',            label: 'Практ.', title: 'Практичні заняття' },
+  { type: 'LAB',                 label: 'Лаб.',   title: 'Лабораторні заняття' },
+  { type: 'SEMINAR',             label: 'Семін.', title: 'Семінарські заняття' },
+  { type: 'CONSULTATION',        label: 'Конс.',  title: 'Консультації' },
+  { type: 'SPRS',                label: 'СПРС',   title: 'Самостійна робота студентів' },
+  { type: 'SEMESTER_CONTROL',     label: 'Зал/Екз', title: 'Залік / екзамен (Наказ МОН №686, п.14/16)' },
+  { type: 'CONTROL_WORKS_CHECK',  label: 'Контр.',  title: 'Перевірка контрольних робіт (Наказ МОН №686, п.11/12)' },
+  { type: 'PRACTICE_SUPERVISION',    label: 'Практика', title: 'Керівництво практикою (Наказ МОН №686, п.17/18)' },
+  { type: 'COURSE_WORK_SUPERVISION', label: 'Курс.',    title: 'Керівництво курсовою роботою/проєктом (Наказ МОН №686, п.13)' },
+  { type: 'DIPLOMA_COMMITTEE',       label: 'Комісія',  title: 'Комісія захисту дипломних робіт (Наказ МОН №686, п.20)' },
+  { type: 'PRE_CONTROL_CONSULTATION', label: 'Консульт.', title: 'Консультації перед семестровим контролем (Наказ МОН №686, п.10)' },
 ]
 
 // ─── TH / TD primitives ───────────────────────────────────────────────────────
@@ -533,7 +539,7 @@ function DistributionModeRow({
 
   return (
     <tr className="bg-muted/30">
-      <TD colSpan={13} className="px-3 py-1.5">
+      <TD colSpan={5 + LESSON_COLS.length + 2} className="px-3 py-1.5">
         <div className="flex items-center gap-4 flex-wrap text-xs">
           {/* Підгрупи — для всіх видів занять (мова/IT/фізкультура) */}
           <div className="flex items-center gap-1.5">
@@ -1096,7 +1102,7 @@ export function AssignmentTable({
                 </TH>
                 <TH rowSpan={2} className="text-center">Сем.</TH>
                 <TH rowSpan={2} className="text-center">Год.</TH>
-                <TH colSpan={6} className="text-center border-x border-border/50 border-b-0">
+                <TH colSpan={LESSON_COLS.length} className="text-center border-x border-border/50 border-b-0">
                   Розподіл годин
                 </TH>
                 <TH rowSpan={2} className="min-w-[160px]">Основний викладач</TH>

@@ -33,13 +33,7 @@ export type CurriculumComponentKind =
 
 export type TermControlForm = 'EXAM' | 'CREDIT' | 'GRADED_CREDIT'
 
-export type ControlForm =
-  | 'EXAM'
-  | 'TEST'
-  | 'DIFFERENTIATED_TEST'
-  | 'COURSE_WORK'
-  | 'COURSE_PROJECT'
-  | 'NONE'
+export type ExamFormat = 'ORAL' | 'WRITTEN'
 export type PracticeType = 'EDUCATIONAL' | 'TECHNOLOGICAL' | 'PRE_GRADUATION'
 export type CalendarWeekType =
   | 'INSTRUCTION'
@@ -323,8 +317,16 @@ export interface WorkingComponentTermDto {
     semesterNumber: number
     ects: string
     hours: number
-    controlForm: ControlForm
-    component: { id: string; code: string | null; name: string; componentType: ComponentType }
+    controlForm: TermControlForm | null
+    hasCourseWork: boolean
+    hasCourseProject: boolean
+    component: {
+      id: string
+      code: string | null
+      name: string
+      componentType: ComponentType
+      practiceType: PracticeType | null
+    }
   }
   lectureHours: number
   practicalHours: number
@@ -337,6 +339,15 @@ export interface WorkingComponentTermDto {
   /** null — викладач не призначений */
   teacherId: string | null
   teacher: { id: string; firstName: string; lastName: string; middleName: string | null } | null
+  /** Формат семестрового екзамену (Наказ МОН №686, п.16). Лише для controlForm=EXAM. */
+  examFormat: ExamFormat | null
+  /** Кількість контрольних робіт: аудиторних (п.11) / самостійних (п.12) */
+  controlWorksAuditoryCount: number
+  controlWorksIndependentCount: number
+  /** Тривалість практики в тижнях (Наказ МОН №686, п.17/18). Лише для componentType=PRACTICE. */
+  practiceDurationWeeks: string | null
+  /** Кількість членів комісії захисту дипломних робіт (Наказ МОН №686, п.20). */
+  diplomaCommitteeSize: number
 }
 
 // ─── Filters ──────────────────────────────────────────────────────────────────
@@ -366,24 +377,6 @@ export const EDUCATION_FORM_LABELS: Record<EducationForm, string> = {
 export const ADMISSION_BASIS_LABELS: Record<AdmissionBasis, string> = {
   AFTER_9TH_GRADE: 'На основі 9 класів',
   AFTER_11TH_GRADE: 'На основі 11 класів',
-}
-
-export const CONTROL_FORM_LABELS: Record<ControlForm, string> = {
-  EXAM: 'Екзамен',
-  TEST: 'Залік',
-  DIFFERENTIATED_TEST: 'Диф. залік',
-  COURSE_WORK: 'Курсова робота',
-  COURSE_PROJECT: 'Курсовий проект',
-  NONE: '—',
-}
-
-export const CONTROL_FORM_SHORT: Record<ControlForm, string> = {
-  EXAM: 'Е',
-  TEST: 'З',
-  DIFFERENTIATED_TEST: 'ДЗ',
-  COURSE_WORK: 'КР',
-  COURSE_PROJECT: 'КП',
-  NONE: '—',
 }
 
 export const TERM_CONTROL_FORM_LABELS: Record<TermControlForm, string> = {

@@ -29,6 +29,7 @@ import {
 import {
   COMPONENT_TYPE_LABELS,
   type ComponentType,
+  type ExamFormat,
   type WorkingComponentTermDto,
   type WorkingCurriculumSummaryDto,
 } from '../types'
@@ -45,6 +46,11 @@ interface DraftRow {
   consultationHours: string
   weeklyLectureHours: string
   weeklyPracticalHours: string
+  controlWorksAuditoryCount: string
+  controlWorksIndependentCount: string
+  examFormat: ExamFormat | null
+  practiceDurationWeeks: string
+  diplomaCommitteeSize: string
 }
 
 type RowStatus = 'empty' | 'partial' | 'complete' | 'error'
@@ -65,6 +71,11 @@ function initDraft(t: WorkingComponentTermDto): DraftRow {
     consultationHours: toStr(t.consultationHours),
     weeklyLectureHours: t.weeklyLectureHours ?? '',
     weeklyPracticalHours: t.weeklyPracticalHours ?? '',
+    controlWorksAuditoryCount: toStr(t.controlWorksAuditoryCount),
+    controlWorksIndependentCount: toStr(t.controlWorksIndependentCount),
+    examFormat: t.examFormat,
+    practiceDurationWeeks: t.practiceDurationWeeks ?? '',
+    diplomaCommitteeSize: toStr(t.diplomaCommitteeSize),
   }
 }
 
@@ -179,7 +190,7 @@ function HourDistributionTable({
   }, [wc])
 
   const setField = useCallback(
-    (termId: string, field: keyof DraftRow, value: string) => {
+    <K extends keyof DraftRow>(termId: string, field: K, value: DraftRow[K]) => {
       setDrafts((prev) => {
         const current = prev[termId]
         if (!current) return prev
@@ -219,6 +230,11 @@ function HourDistributionTable({
         consultationHours: parseInt(draft.consultationHours) || 0,
         weeklyLectureHours: parseWeekly(draft.weeklyLectureHours),
         weeklyPracticalHours: parseWeekly(draft.weeklyPracticalHours),
+        controlWorksAuditoryCount: parseInt(draft.controlWorksAuditoryCount) || 0,
+        controlWorksIndependentCount: parseInt(draft.controlWorksIndependentCount) || 0,
+        examFormat: draft.examFormat,
+        practiceDurationWeeks: parseWeekly(draft.practiceDurationWeeks),
+        diplomaCommitteeSize: parseInt(draft.diplomaCommitteeSize) || 3,
       }
 
       const changed =
@@ -229,7 +245,12 @@ function HourDistributionTable({
         next.independentHours !== server.independentHours ||
         next.consultationHours !== server.consultationHours ||
         next.weeklyLectureHours !== parseServerWeekly(server.weeklyLectureHours) ||
-        next.weeklyPracticalHours !== parseServerWeekly(server.weeklyPracticalHours)
+        next.weeklyPracticalHours !== parseServerWeekly(server.weeklyPracticalHours) ||
+        next.controlWorksAuditoryCount !== server.controlWorksAuditoryCount ||
+        next.controlWorksIndependentCount !== server.controlWorksIndependentCount ||
+        next.examFormat !== server.examFormat ||
+        next.practiceDurationWeeks !== parseServerWeekly(server.practiceDurationWeeks) ||
+        next.diplomaCommitteeSize !== server.diplomaCommitteeSize
 
       if (!changed) return
 
@@ -411,6 +432,21 @@ function HourDistributionTable({
             <th colSpan={nSems} className="border border-border px-0.5 py-0.5 leading-tight font-normal text-muted-foreground">
               Розподіл навч.<br />роботи
             </th>
+            <th colSpan={nSems} className="border border-border px-0.5 py-0.5 leading-tight font-normal text-muted-foreground">
+              Контр. роботи<br />(ауд.)
+            </th>
+            <th colSpan={nSems} className="border border-border px-0.5 py-0.5 leading-tight font-normal text-muted-foreground">
+              Контр. роботи<br />(СР)
+            </th>
+            <th colSpan={nSems} className="border border-border px-0.5 py-0.5 leading-tight font-normal text-muted-foreground">
+              Формат<br />екзамену
+            </th>
+            <th colSpan={nSems} className="border border-border px-0.5 py-0.5 leading-tight font-normal text-muted-foreground">
+              Тривалість практики<br />(тижнів)
+            </th>
+            <th colSpan={nSems} className="border border-border px-0.5 py-0.5 leading-tight font-normal text-muted-foreground">
+              Комісія захисту<br />(осіб)
+            </th>
             <th rowSpan={4} className="border border-border w-5" />
           </tr>
 
@@ -428,6 +464,31 @@ function HourDistributionTable({
             {semesters.map((sem) => (
               <th key={sem} rowSpan={2} className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal text-muted-foreground">
                 {ORDINAL[sem] ?? String(sem)} сем. год/тижд
+              </th>
+            ))}
+            {semesters.map((sem) => (
+              <th key={sem} rowSpan={2} className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal text-muted-foreground">
+                {ORDINAL[sem] ?? String(sem)} к-сть (ауд.)
+              </th>
+            ))}
+            {semesters.map((sem) => (
+              <th key={sem} rowSpan={2} className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal text-muted-foreground">
+                {ORDINAL[sem] ?? String(sem)} к-сть (СР)
+              </th>
+            ))}
+            {semesters.map((sem) => (
+              <th key={sem} rowSpan={2} className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal text-muted-foreground">
+                {ORDINAL[sem] ?? String(sem)} формат екз.
+              </th>
+            ))}
+            {semesters.map((sem) => (
+              <th key={sem} rowSpan={2} className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal text-muted-foreground">
+                {ORDINAL[sem] ?? String(sem)} тижнів практики
+              </th>
+            ))}
+            {semesters.map((sem) => (
+              <th key={sem} rowSpan={2} className="border border-border p-0.5 align-bottom [writing-mode:vertical-rl] rotate-180 w-7 font-normal text-muted-foreground">
+                {ORDINAL[sem] ?? String(sem)} осіб комісії
               </th>
             ))}
           </tr>
@@ -464,6 +525,31 @@ function HourDistributionTable({
                 {8 + nSems * 7 + si}
               </td>
             ))}
+            {semesters.map((_, si) => (
+              <td key={si} className="border border-border py-0.5 text-center">
+                {8 + nSems * 7 + nSems + si}
+              </td>
+            ))}
+            {semesters.map((_, si) => (
+              <td key={si} className="border border-border py-0.5 text-center">
+                {8 + nSems * 7 + nSems * 2 + si}
+              </td>
+            ))}
+            {semesters.map((_, si) => (
+              <td key={si} className="border border-border py-0.5 text-center">
+                {8 + nSems * 7 + nSems * 3 + si}
+              </td>
+            ))}
+            {semesters.map((_, si) => (
+              <td key={si} className="border border-border py-0.5 text-center">
+                {8 + nSems * 7 + nSems * 4 + si}
+              </td>
+            ))}
+            {semesters.map((_, si) => (
+              <td key={si} className="border border-border py-0.5 text-center">
+                {8 + nSems * 7 + nSems * 5 + si}
+              </td>
+            ))}
           </tr>
         </thead>
 
@@ -483,10 +569,10 @@ function HourDistributionTable({
               .filter((t) => t.componentTerm.controlForm === 'EXAM')
               .map((t) => t.componentTerm.semesterNumber)
             const creditSems = allTerms
-              .filter((t) => t.componentTerm.controlForm === 'TEST' || t.componentTerm.controlForm === 'DIFFERENTIATED_TEST')
+              .filter((t) => t.componentTerm.controlForm === 'CREDIT' || t.componentTerm.controlForm === 'GRADED_CREDIT')
               .map((t) => t.componentTerm.semesterNumber)
             const courseSems = allTerms
-              .filter((t) => t.componentTerm.controlForm === 'COURSE_WORK' || t.componentTerm.controlForm === 'COURSE_PROJECT')
+              .filter((t) => t.componentTerm.hasCourseWork || t.componentTerm.hasCourseProject)
               .map((t) => t.componentTerm.semesterNumber)
 
             const termStatuses = allTerms.map((t) => {
@@ -610,6 +696,103 @@ function HourDistributionTable({
                   )
                 })}
 
+                {/* ── Контрольні роботи (аудиторні, п.11) per semester ── */}
+                {semesters.map((sem) => {
+                  const term = row.termsBySemester.get(sem)
+                  if (term === undefined) {
+                    return <td key={sem} className="border border-border px-0.5 py-1.5 text-center text-muted-foreground/40 align-middle bg-muted/40">—</td>
+                  }
+                  const d = drafts[term.id]
+                  if (d === undefined) {
+                    return <td key={sem} className="border border-border px-0.5 py-1.5 text-center text-muted-foreground/40 align-middle">—</td>
+                  }
+                  return (
+                    <EditCell key={sem} value={d.controlWorksAuditoryCount} onChange={(v) => setField(term.id, 'controlWorksAuditoryCount', v)} onBlur={() => handleBlur(term.id)} disabled={isReadOnly} />
+                  )
+                })}
+
+                {/* ── Контрольні роботи (самостійна робота, п.12) per semester ── */}
+                {semesters.map((sem) => {
+                  const term = row.termsBySemester.get(sem)
+                  if (term === undefined) {
+                    return <td key={sem} className="border border-border px-0.5 py-1.5 text-center text-muted-foreground/40 align-middle bg-muted/40">—</td>
+                  }
+                  const d = drafts[term.id]
+                  if (d === undefined) {
+                    return <td key={sem} className="border border-border px-0.5 py-1.5 text-center text-muted-foreground/40 align-middle">—</td>
+                  }
+                  return (
+                    <EditCell key={sem} value={d.controlWorksIndependentCount} onChange={(v) => setField(term.id, 'controlWorksIndependentCount', v)} onBlur={() => handleBlur(term.id)} disabled={isReadOnly} />
+                  )
+                })}
+
+                {/* ── Формат екзамену (лише для controlForm=EXAM), п.16 ── */}
+                {semesters.map((sem) => {
+                  const term = row.termsBySemester.get(sem)
+                  if (term === undefined) {
+                    return <td key={sem} className="border border-border px-0.5 py-1.5 text-center text-muted-foreground/40 align-middle bg-muted/40">—</td>
+                  }
+                  const d = drafts[term.id]
+                  if (term.componentTerm.controlForm !== 'EXAM' || d === undefined) {
+                    return <td key={sem} className="border border-border px-0.5 py-1.5 text-center text-muted-foreground/40 align-middle">—</td>
+                  }
+                  return (
+                    <td key={sem} className="border border-border p-0 text-center align-middle">
+                      <select
+                        value={d.examFormat ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value === '' ? null : (e.target.value as 'ORAL' | 'WRITTEN')
+                          setField(term.id, 'examFormat', value)
+                          handleBlur(term.id)
+                        }}
+                        disabled={isReadOnly}
+                        className={cn(
+                          'w-full text-center font-mono text-[10px] bg-transparent outline-none py-1.5 px-0.5',
+                          !isReadOnly && 'focus:bg-blue-50/30 dark:focus:bg-blue-950/10',
+                          isReadOnly && 'cursor-default',
+                        )}
+                      >
+                        <option value="">—</option>
+                        <option value="ORAL">Усно</option>
+                        <option value="WRITTEN">Письмово</option>
+                      </select>
+                    </td>
+                  )
+                })}
+
+                {/* ── Тривалість практики в тижнях (лише для componentType=PRACTICE), п.17/18 ── */}
+                {semesters.map((sem) => {
+                  const term = row.termsBySemester.get(sem)
+                  if (term === undefined) {
+                    return <td key={sem} className="border border-border px-0.5 py-1.5 text-center text-muted-foreground/40 align-middle bg-muted/40">—</td>
+                  }
+                  const d = drafts[term.id]
+                  if (term.componentTerm.component.componentType !== 'PRACTICE' || d === undefined) {
+                    return <td key={sem} className="border border-border px-0.5 py-1.5 text-center text-muted-foreground/40 align-middle">—</td>
+                  }
+                  return (
+                    <EditCell key={sem} value={d.practiceDurationWeeks} onChange={(v) => setField(term.id, 'practiceDurationWeeks', v)} onBlur={() => handleBlur(term.id)} disabled={isReadOnly} isDecimal />
+                  )
+                })}
+
+                {/* ── Кількість членів комісії захисту (лише для DIPLOMA_PROJECT/QUALIFICATION_WORK_DEFENSE), п.20 ── */}
+                {semesters.map((sem) => {
+                  const term = row.termsBySemester.get(sem)
+                  if (term === undefined) {
+                    return <td key={sem} className="border border-border px-0.5 py-1.5 text-center text-muted-foreground/40 align-middle bg-muted/40">—</td>
+                  }
+                  const d = drafts[term.id]
+                  const isDiploma =
+                    term.componentTerm.component.componentType === 'DIPLOMA_PROJECT' ||
+                    term.componentTerm.component.componentType === 'QUALIFICATION_WORK_DEFENSE'
+                  if (!isDiploma || d === undefined) {
+                    return <td key={sem} className="border border-border px-0.5 py-1.5 text-center text-muted-foreground/40 align-middle">—</td>
+                  }
+                  return (
+                    <EditCell key={sem} value={d.diplomaCommitteeSize} onChange={(v) => setField(term.id, 'diplomaCommitteeSize', v)} onBlur={() => handleBlur(term.id)} disabled={isReadOnly} />
+                  )
+                })}
+
                 {/* ── Status ── */}
                 <td className="border border-border px-1 py-1.5 text-center align-middle">
                   <StatusDot status={rowSt} />
@@ -648,7 +831,7 @@ function HourDistributionTable({
                 </Fragment>
               )
             })}
-            <td colSpan={nSems + 1} className="border border-border" />
+            <td colSpan={nSems * 6 + 1} className="border border-border" />
           </tr>
         </tfoot>
       </table>
