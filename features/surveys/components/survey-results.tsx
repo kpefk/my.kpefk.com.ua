@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 
 import { useSurveyResults } from '../api'
-import type { SurveyQuestionResultDto } from '../types'
+import { CHOICE_QUESTION_TYPES, type SurveyQuestionResultDto } from '../types'
 
 export function SurveyResults({ surveyId }: { surveyId: string }) {
   const { data, isLoading, error } = useSurveyResults(surveyId)
@@ -74,17 +74,21 @@ function QuestionResultCard({ q }: { q: SurveyQuestionResultDto }) {
         </span>
       </p>
 
-      {q.type === 'RATING' && q.ratingDistribution && (
+      {(q.type === 'RATING' || q.type === 'SCALE') && q.ratingDistribution && (
         <div className="space-y-1.5">
           <p className="text-2xl font-bold tabular-nums">
             {q.ratingAverage !== null ? q.ratingAverage : '—'}
-            <span className="text-sm font-normal text-muted-foreground"> / 5</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              {' '}
+              / {q.type === 'SCALE' ? (q.scaleMax ?? 5) : 5}
+            </span>
           </p>
           {q.ratingDistribution.map((count, idx) => {
             const total = q.answersCount || 1
+            const label = q.type === 'SCALE' ? (q.scaleMin ?? 1) + idx : idx + 1
             return (
               <div key={idx} className="flex items-center gap-3 text-xs">
-                <span className="w-4 shrink-0 tabular-nums">{idx + 1}</span>
+                <span className="w-4 shrink-0 tabular-nums">{label}</span>
                 <Progress value={Math.round((count / total) * 100)} className="h-1.5" />
                 <span className="w-8 shrink-0 text-right tabular-nums text-muted-foreground">
                   {count}
@@ -95,16 +99,26 @@ function QuestionResultCard({ q }: { q: SurveyQuestionResultDto }) {
         </div>
       )}
 
-      {q.type === 'YES_NO' && (
-        <div className="flex gap-4 text-sm">
-          <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-            Так: {q.yesCount ?? 0}
-          </span>
-          <span className="text-red-600 dark:text-red-400 font-medium">Ні: {q.noCount ?? 0}</span>
+      {CHOICE_QUESTION_TYPES.includes(q.type) && q.optionCounts && (
+        <div className="space-y-1.5">
+          {q.optionCounts.map((oc) => {
+            const total = q.answersCount || 1
+            return (
+              <div key={oc.optionId} className="flex items-center gap-3 text-xs">
+                <span className="w-32 shrink-0 truncate" title={oc.text}>
+                  {oc.text}
+                </span>
+                <Progress value={Math.round((oc.count / total) * 100)} className="h-1.5" />
+                <span className="w-8 shrink-0 text-right tabular-nums text-muted-foreground">
+                  {oc.count}
+                </span>
+              </div>
+            )
+          })}
         </div>
       )}
 
-      {q.type === 'TEXT' && (
+      {(q.type === 'TEXT' || q.type === 'PARAGRAPH') && (
         <div className="space-y-1.5">
           {(q.textAnswers ?? []).map((t, idx) => (
             <div

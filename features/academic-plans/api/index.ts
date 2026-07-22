@@ -351,6 +351,19 @@ export function useWorkingCurriculum(id: string | null) {
   })
 }
 
+/** Робочий навчальний план групи (для пікера компонентів у перезарахуванні/мобільності). */
+export function useGroupWorkingCurriculum(groupId: string | null) {
+  return useQuery({
+    queryKey: [...curriculumKeys.workingCurricula, 'by-group', groupId],
+    queryFn: () =>
+      apiGet<WorkingCurriculumDetailDto | null>(
+        ENDPOINTS.CURRICULUM.GROUP_WORKING_CURRICULA(groupId!),
+      ),
+    enabled: !!groupId,
+    staleTime: 60_000,
+  })
+}
+
 export function useInitializeWorkingCurriculumTerms() {
   const queryClient = useQueryClient()
   return useMutation({

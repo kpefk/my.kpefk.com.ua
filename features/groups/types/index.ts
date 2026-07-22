@@ -22,6 +22,9 @@ export interface GroupDto {
   curatorId: string | null
   curator: GroupCurator | null
 
+  /** Дата архівації (усі студенти завершили навчання / відраховані). null = активна. */
+  archivedAt: string | null
+
   createdAt: string
   modifyDate: string | null
 }
@@ -32,6 +35,8 @@ export interface GroupFilters {
   facultyName: string | null
   educationFormName: string | null
   hasCurator: boolean | null
+  /** null = лише активні (за замовчуванням), true = лише архів, false = всі */
+  archived: boolean | null
 }
 
 export const DEFAULT_GROUP_FILTERS: GroupFilters = {
@@ -40,6 +45,12 @@ export const DEFAULT_GROUP_FILTERS: GroupFilters = {
   facultyName: null,
   educationFormName: null,
   hasCurator: null,
+  archived: null,
+}
+
+export function isGroupArchived(group: GroupDto): boolean {
+  // Boolean(), а не `!== null`: якщо бекенд ще не віддає поле (undefined) — група вважається активною.
+  return Boolean(group.archivedAt)
 }
 
 export interface CuratorOption {

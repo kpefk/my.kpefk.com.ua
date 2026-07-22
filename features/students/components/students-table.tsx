@@ -14,7 +14,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-import { isStudentActive, type StudentDto } from '../types'
+import { isStudentActive, studentStatus, type StudentDto } from '../types'
 
 interface SortState {
   column: 'personFIO' | 'groupName' | 'courseName' | 'isActive' | null
@@ -70,25 +70,32 @@ function sortStudents(students: StudentDto[], sort: SortState): StudentDto[] {
 }
 
 function StudentStatusBadge({ student }: { student: StudentDto }) {
-  if (student.academicLeaveTypeName) {
-    return (
-      <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-100 whitespace-nowrap">
-        Академвідпустка
-      </Badge>
-    )
+  switch (studentStatus(student)) {
+    case 'ACADEMIC_LEAVE':
+      return (
+        <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-100 whitespace-nowrap">
+          Академвідпустка
+        </Badge>
+      )
+    case 'EXPELLED':
+      return (
+        <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-100">
+          Відраховано
+        </Badge>
+      )
+    case 'COMPLETED':
+      return (
+        <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 whitespace-nowrap">
+          Навчання завершено
+        </Badge>
+      )
+    default:
+      return (
+        <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 hover:bg-emerald-100">
+          Навчається
+        </Badge>
+      )
   }
-  if (student.expelEducationTypeName) {
-    return (
-      <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-100">
-        Відраховано
-      </Badge>
-    )
-  }
-  return (
-    <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 hover:bg-emerald-100">
-      Навчається
-    </Badge>
-  )
 }
 
 const SKELETON_ROWS = 10

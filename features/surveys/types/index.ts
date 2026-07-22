@@ -1,7 +1,27 @@
 // ─── Surveys DTOs (mirror backend src/surveys/dto/*) ─────────────────────────
 
 export type SurveyStatus = 'DRAFT' | 'OPEN' | 'CLOSED'
-export type SurveyQuestionType = 'RATING' | 'YES_NO' | 'TEXT'
+export type SurveyQuestionType =
+  | 'RATING'
+  | 'TEXT'
+  | 'PARAGRAPH'
+  | 'SINGLE_CHOICE'
+  | 'MULTI_CHOICE'
+  | 'DROPDOWN'
+  | 'SCALE'
+
+/** Choice-типи з варіантами відповіді. */
+export const CHOICE_QUESTION_TYPES: SurveyQuestionType[] = [
+  'SINGLE_CHOICE',
+  'MULTI_CHOICE',
+  'DROPDOWN',
+]
+
+export interface SurveyQuestionOptionDto {
+  id: string
+  order: number
+  text: string
+}
 
 export interface SurveyQuestionDto {
   id: string
@@ -9,6 +29,11 @@ export interface SurveyQuestionDto {
   text: string
   type: SurveyQuestionType
   required: boolean
+  options: SurveyQuestionOptionDto[]
+  scaleMin: number | null
+  scaleMax: number | null
+  scaleMinLabel: string | null
+  scaleMaxLabel: string | null
 }
 
 export interface SurveyTargetGroupDto {
@@ -48,6 +73,12 @@ export interface SurveyGroupRateDto {
   completions: number
 }
 
+export interface SurveyOptionCountDto {
+  optionId: string
+  text: string
+  count: number
+}
+
 export interface SurveyQuestionResultDto {
   questionId: string
   order: number
@@ -55,10 +86,13 @@ export interface SurveyQuestionResultDto {
   type: SurveyQuestionType
   answersCount: number
   ratingAverage: number | null
-  /** Індекс 0 → оцінка 1, ..., індекс 4 → оцінка 5. */
+  /** RATING: індекс 0 → оцінка 1. SCALE: індекс 0 → scaleMin. */
   ratingDistribution: number[] | null
-  yesCount: number | null
-  noCount: number | null
+  /** SCALE: межі шкали (для підписів розподілу). */
+  scaleMin: number | null
+  scaleMax: number | null
+  /** SINGLE_CHOICE/MULTI_CHOICE/DROPDOWN: лічильник по варіантах. */
+  optionCounts: SurveyOptionCountDto[] | null
   textAnswers: string[] | null
 }
 
@@ -98,12 +132,19 @@ export interface SurveyQuestionInput {
   text: string
   type: SurveyQuestionType
   required?: boolean
+  /** Варіанти (текст) для choice-типів. */
+  options?: string[]
+  /** Лінійна шкала (SCALE). */
+  scaleMin?: number
+  scaleMax?: number
+  scaleMinLabel?: string
+  scaleMaxLabel?: string
 }
 
 export interface SubmitAnswerInput {
   questionId: string
   ratingValue?: number
-  boolValue?: boolean
+  selectedOptionIds?: string[]
   textValue?: string
 }
 
@@ -116,7 +157,16 @@ export const SURVEY_STATUS_LABELS: Record<SurveyStatus, string> = {
 }
 
 export const QUESTION_TYPE_LABELS: Record<SurveyQuestionType, string> = {
-  RATING: 'Шкала 1–5',
-  YES_NO: 'Так / Ні',
-  TEXT: 'Текстова відповідь',
+  RATING: 'Рейтинг (зірки 1–5)',
+  TEXT: 'Коротка відповідь',
+  PARAGRAPH: 'Абзац',
+  SINGLE_CHOICE: 'Один варіант',
+  MULTI_CHOICE: 'Кілька варіантів',
+  DROPDOWN: 'Спадний список',
+  SCALE: 'Лінійна шкала',
 }
+
+/** Допустимі межі для налаштовуваної лінійної шкали (дзеркало backend). */
+export const SCALE_MIN_ALLOWED = 1
+export const SCALE_MAX_ALLOWED = 10
+export const SURVEY_MAX_OPTIONS = 20

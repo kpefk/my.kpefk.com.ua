@@ -14,7 +14,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-import { getGroupCuratorName, type GroupDto } from '../types'
+import { getGroupCuratorName, isGroupArchived, type GroupDto } from '../types'
 import { GroupSyncButton } from './sync-button'
 
 interface SortState {
@@ -157,7 +157,16 @@ export function GroupsTable({
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => onRowClick(group)}
               >
-                <TableCell className="font-medium">{group.name}</TableCell>
+                <TableCell className="font-medium">
+                  <span className="inline-flex items-center gap-2">
+                    {group.name}
+                    {isGroupArchived(group) && (
+                      <Badge className="bg-slate-200 text-slate-700 dark:bg-slate-700/40 dark:text-slate-300 hover:bg-slate-200 whitespace-nowrap font-normal">
+                        Архів
+                      </Badge>
+                    )}
+                  </span>
+                </TableCell>
 
                 <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
                   {group.course ?? '—'}

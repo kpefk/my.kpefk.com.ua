@@ -94,6 +94,16 @@ export function StudentTranscript({
                             Спроба {g.attempt}
                           </Badge>
                         )}
+                        {g.origin === 'RECOGNIZED' && (
+                          <Badge variant="secondary" className="text-xs">
+                            Перезараховано
+                          </Badge>
+                        )}
+                        {g.origin === 'MOBILITY' && (
+                          <Badge variant="secondary" className="text-xs">
+                            Мобільність
+                          </Badge>
+                        )}
                       </div>
                       {g.componentCode && (
                         <p className="text-xs text-muted-foreground mt-0.5">

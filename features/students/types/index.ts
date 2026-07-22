@@ -71,9 +71,25 @@ export const DEFAULT_STUDENT_FILTERS: StudentFilters = {
   isActive: null,
 }
 
-/** Студент вважається активним, якщо немає причини відрахування та академвідпустки */
+export type StudentStatus = 'ACADEMIC_LEAVE' | 'EXPELLED' | 'COMPLETED' | 'STUDYING'
+
+/** Навчання завершено, якщо планова дата закінчення (educationDateEnd) вже минула. */
+export function isStudentCompleted(s: StudentDto): boolean {
+  if (!s.educationDateEnd) return false
+  return new Date(s.educationDateEnd).getTime() < Date.now()
+}
+
+/** Єдина точка визначення статусу навчання студента (пріоритет: академ → відраховано → завершено). */
+export function studentStatus(s: StudentDto): StudentStatus {
+  if (s.academicLeaveTypeName) return 'ACADEMIC_LEAVE'
+  if (s.expelEducationTypeName) return 'EXPELLED'
+  if (isStudentCompleted(s)) return 'COMPLETED'
+  return 'STUDYING'
+}
+
+/** Студент вважається активним (навчається), лише якщо статус — STUDYING. */
 export function isStudentActive(s: StudentDto): boolean {
-  return !s.expelEducationTypeName && !s.academicLeaveTypeName
+  return studentStatus(s) === 'STUDYING'
 }
 
 export const formatDate = (date: string | null | undefined): string =>

@@ -62,6 +62,76 @@ export interface QualificationUpgradeDto {
   createdAt: string
 }
 
+// ─── Attestation (атестація педпрацівників) ───────────────────────────────────
+
+export type AttestationType = 'REGULAR' | 'EXTRAORDINARY'
+export type AttestationStatus = 'NEVER' | 'OVERDUE' | 'DUE' | 'OK'
+
+export interface TeacherAttestationDto {
+  id: string
+  teacherId: string
+  attestationDate: string
+  type: AttestationType
+  resultCategory: string
+  resultTitle: string | null
+  correspondsToPosition: boolean
+  orderNumber: string | null
+  orderDate: string | null
+  nextAttestationDate: string
+  notes: string | null
+  createdAt: string
+}
+
+export interface AttestationDueRowDto {
+  teacher: {
+    id: string
+    fullName: string
+    positionName: string | null
+    skillName: string | null
+    dignityNames: string | null
+  }
+  lastAttestationDate: string | null
+  nextAttestationDate: string | null
+  status: AttestationStatus
+}
+
+export interface CreateAttestationPayload {
+  attestationDate: string
+  type: AttestationType
+  resultCategory: string
+  resultTitle?: string
+  correspondsToPosition?: boolean
+  orderNumber?: string
+  orderDate?: string
+  nextAttestationDate?: string
+  notes?: string
+}
+
+export const ATTESTATION_TYPE_LABELS: Record<AttestationType, string> = {
+  REGULAR: 'Чергова',
+  EXTRAORDINARY: 'Позачергова',
+}
+
+export const ATTESTATION_STATUS_LABELS: Record<AttestationStatus, string> = {
+  NEVER: 'Не атестований',
+  OVERDUE: 'Прострочено',
+  DUE: 'Цього року',
+  OK: 'Актуально',
+}
+
+/** Довідники для випадайок (можна ввести «Інше»). */
+export const STANDARD_CATEGORIES: readonly string[] = [
+  'Спеціаліст',
+  'Спеціаліст другої категорії',
+  'Спеціаліст першої категорії',
+  'Спеціаліст вищої категорії',
+]
+
+export const STANDARD_TITLES: readonly string[] = [
+  'Старший викладач',
+  'Викладач-методист',
+]
+
 export interface TeacherFilters {
   search: string
   facultyId: number | null

@@ -2,6 +2,9 @@
 
 export type GradeScale = 'TWELVE_POINT' | 'FIVE_POINT'
 
+/** Джерело оцінки: звичайна / перезарахована / академічна мобільність. */
+export type GradeOrigin = 'REGULAR' | 'RECOGNIZED' | 'MOBILITY'
+
 export type NationalGrade =
   | 'EXCELLENT'
   | 'GOOD'
@@ -66,6 +69,7 @@ export interface StudentTranscriptGradeDto {
   finalGrade: number | null
   nationalGrade: NationalGrade
   attempt: number
+  origin: GradeOrigin
 }
 
 export interface StudentTranscriptDto {

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/lib/stores/auth.store'
+import { useAuthStore } from '@/store/auth.store'
 
 /**
  * Hook для захисту клієнтських роутів.

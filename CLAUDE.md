@@ -16,7 +16,7 @@
 - App Router with two route groups: `(auth)` (public) and `(pages)` (protected, client-guarded)
 - All data fetching is **client-side** via TanStack Query + Axios
 - No server actions, no route handlers, no `fetch()` in server components
-- Auth state in Zustand (`lib/stores/auth.store.ts`), persisted to `sessionStorage` (user only)
+- Auth state in Zustand (`store/auth.store.ts`), persisted to `sessionStorage` (user only)
 - Feature-based directory structure: `features/{feature}/api`, `components`, `types`
 
 ***
@@ -88,7 +88,7 @@
 - **`retry: false`** is set for 401 responses in the global QueryClient config (`providers.tsx`). Do not add retry logic to individual queries for auth errors.
 - **Mutations report errors via `sonner` toast** — this is the global `onError` handler in QueryClient. Do not add duplicate `toast.error()` calls in component `onError` callbacks unless you need custom messaging.
 - **Zustand** manages auth client state only: `user`, `isLoading`, `isTwoFactorRequired`. It does not manage server data.
-- **Auth store** canonical location: `lib/stores/auth.store.ts`. The `store/auth.store.ts` path also exists — both currently export the same store.
+- **Auth store** canonical (single) location: `store/auth.store.ts` — thin store (state + sync setters, persists `user` to sessionStorage). Async auth flows (login/register/logout/session check) live in `features/auth/api` (`useLogin`/`useMe`/`useLogout`) and write to this store via its setters.
 - **Loading and error states:** use skeleton components (`components/ui/skeleton.tsx`) for loading, and surface errors via `sonner` or inline error UI. Do not leave loading states unhandled.
 
 ***

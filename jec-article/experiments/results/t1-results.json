@@ -1,0 +1,71 @@
+{
+  "property": {
+    "cases": 100000,
+    "coreProps": 4,
+    "coreFailures": 0,
+    "extendedProps": 4,
+    "extendedCases": 400000,
+    "extendedFailures": 0
+  },
+  "bench": [
+    {
+      "name": "teachingHoursLimit",
+      "ns_op_mean": 3.88,
+      "ns_op_sd": 4.24,
+      "repeats": 10,
+      "iters": 1000000
+    },
+    {
+      "name": "computeSemesterControlHours(EXAM,ORAL)",
+      "ns_op_mean": 18.72,
+      "ns_op_sd": 3.5,
+      "repeats": 10,
+      "iters": 1000000
+    },
+    {
+      "name": "computeSemesterControlHours(EXAM,WRITTEN)",
+      "ns_op_mean": 25.92,
+      "ns_op_sd": 10.8,
+      "repeats": 10,
+      "iters": 1000000
+    },
+    {
+      "name": "computeControlWorksCheckHours",
+      "ns_op_mean": 28.16,
+      "ns_op_sd": 4.06,
+      "repeats": 10,
+      "iters": 1000000
+    },
+    {
+      "name": "computePracticeSupervisionHours",
+      "ns_op_mean": 6.83,
+      "ns_op_sd": 4.82,
+      "repeats": 10,
+      "iters": 1000000
+    },
+    {
+      "name": "computeCourseWorkSupervisionHours",
+      "ns_op_mean": 14.34,
+      "ns_op_sd": 3.2,
+      "repeats": 10,
+      "iters": 1000000
+    },
+    {
+      "name": "computeDiplomaSupervisionHoursPerAssignee",
+      "ns_op_mean": 13.96,
+      "ns_op_sd": 3.43,
+      "repeats": 10,
+      "iters": 1000000
+    },
+    {
+      "name": "computePreControlConsultationHours",
+      "ns_op_mean": 11.34,
+      "ns_op_sd": 1.08,
+      "repeats": 10,
+      "iters": 1000000
+    }
+  ],
+  "node": "v22.22.3",
+  "ts": "2026-07-11T06:01:24.655Z",
+  "note": "All functions are the production dist/ build; property failures in an earlier draft harness were harness signature errors, corrected here."
+}

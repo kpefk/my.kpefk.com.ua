@@ -120,9 +120,13 @@ export function useSetSurveyStatus() {
       apiPatch<SurveyAdminDto>(ENDPOINTS.SURVEYS.STATUS(id), { status }),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: surveysKeys.all })
-      toast.success(
-        updated.status === 'OPEN' ? 'Опитування відкрито для студентів' : 'Опитування закрито',
-      )
+      const msg =
+        updated.status === 'OPEN'
+          ? 'Опитування відкрито для студентів'
+          : updated.status === 'DRAFT'
+            ? 'Опитування повернуто в чернетку'
+            : 'Опитування закрито'
+      toast.success(msg)
     },
     onError: (err: unknown) => toast.error(errMsg(err, 'Не вдалося змінити статус')),
   })

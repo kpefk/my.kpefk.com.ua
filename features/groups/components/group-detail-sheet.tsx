@@ -12,7 +12,9 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 
-import { formatDate, getGroupCuratorName, type GroupDto } from '../types'
+import { Badge } from '@/components/ui/badge'
+
+import { formatDate, getGroupCuratorName, isGroupArchived, type GroupDto } from '../types'
 
 // ── Reusable primitives ───────────────────────────────────────────
 
@@ -57,7 +59,14 @@ export function GroupDetailSheet({ group, open, onClose, onAssignCurator }: Grou
         {/* Header */}
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-border">
           <div className="min-w-0">
-            <SheetTitle className="text-lg leading-snug">{group.name}</SheetTitle>
+            <SheetTitle className="text-lg leading-snug inline-flex items-center gap-2">
+              {group.name}
+              {isGroupArchived(group) && (
+                <Badge className="bg-slate-200 text-slate-700 dark:bg-slate-700/40 dark:text-slate-300 hover:bg-slate-200 whitespace-nowrap font-normal">
+                  Архів
+                </Badge>
+              )}
+            </SheetTitle>
             <SheetDescription className="mt-0.5">
               {[
                 group.course ? `${group.course} курс` : null,

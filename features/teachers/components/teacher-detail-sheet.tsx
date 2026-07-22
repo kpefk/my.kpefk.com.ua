@@ -1,5 +1,8 @@
 'use client'
 
+import { useState } from 'react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -11,9 +14,20 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { useUser } from '@/store/auth.store'
 
-import { useQualificationUpgrades } from '../api'
-import { formatDate, formatStage, getFullName, type TeacherDto } from '../types'
+import { useDeleteAttestation, useQualificationUpgrades, useTeacherAttestations } from '../api'
+import {
+  ATTESTATION_TYPE_LABELS,
+  formatDate,
+  formatStage,
+  getFullName,
+  type TeacherAttestationDto,
+  type TeacherDto,
+} from '../types'
+import { AttestationDialog } from './attestation-dialog'
+
+const MANAGE_ROLES = ['HEAD_OF_DEPARTMENT', 'DEPUTY_DIRECTOR', 'DIRECTOR', 'ADMINISTRATOR']
 
 // ── Reusable primitives ───────────────────────────────────────────
 
@@ -46,9 +60,20 @@ interface TeacherDetailSheetProps {
 }
 
 export function TeacherDetailSheet({ teacher, open, onClose }: TeacherDetailSheetProps) {
+  const user = useUser()
+  const canManage = !!user && MANAGE_ROLES.includes(user.role)
+
   const { data: upgrades, isLoading: upgradesLoading } = useQualificationUpgrades(
     open ? (teacher?.id ?? null) : null,
   )
+  // Атестації видно лише керівництву (контролер обмежений — інакше 403).
+  const { data: attestations } = useTeacherAttestations(
+    open && canManage ? (teacher?.id ?? null) : null,
+  )
+  const deleteAtt = useDeleteAttestation()
+
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<TeacherAttestationDto | null>(null)
 
   if (!teacher) return null
 
@@ -155,6 +180,70 @@ export function TeacherDetailSheet({ teacher, open, onClose }: TeacherDetailShee
             )}
           </div>
 
+          {canManage && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Атестація
+                </h3>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => { setEditing(null); setDialogOpen(true) }}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Додати
+                </Button>
+              </div>
+              {attestations && attestations.length > 0 ? (
+                <div className="space-y-2">
+                  {attestations.map((a) => (
+                    <div
+                      key={a.id}
+                      className="rounded-md border border-border bg-muted/30 px-3 py-2 text-sm space-y-0.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-medium leading-snug">{a.resultCategory}</p>
+                        <div className="flex shrink-0 gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => { setEditing(a); setDialogOpen(true) }}
+                            className="p-1 rounded hover:bg-muted text-muted-foreground"
+                            title="Редагувати"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteAtt.mutate({ teacherId: teacher.id, id: a.id })}
+                            className="p-1 rounded hover:bg-muted text-destructive"
+                            title="Видалити"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                      {a.resultTitle && (
+                        <p className="text-muted-foreground text-xs">{a.resultTitle}</p>
+                      )}
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-1">
+                        <span>{formatDate(a.attestationDate)}</span>
+                        <span>{ATTESTATION_TYPE_LABELS[a.type]}</span>
+                        {!a.correspondsToPosition && (
+                          <span className="text-amber-600 dark:text-amber-400">не відповідає посаді</span>
+                        )}
+                        <span>наступна: {formatDate(a.nextAttestationDate)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Записів атестації немає</p>
+              )}
+            </div>
+          )}
+
           <InfoSection title="Службові дані">
             <InfoField
               label="Остання зміна в ЄДЕБО"
@@ -185,6 +274,15 @@ export function TeacherDetailSheet({ teacher, open, onClose }: TeacherDetailShee
           </Button>
         </SheetFooter>
       </SheetContent>
+
+      {canManage && (
+        <AttestationDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          teacherId={teacher.id}
+          attestation={editing}
+        />
+      )}
     </Sheet>
   )
 }

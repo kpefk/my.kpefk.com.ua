@@ -3,8 +3,9 @@
   "configurations": [
     {
       "name": "my-kpefk",
-      "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "cd /d my.kpefk.com.ua && npm run dev"],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "my.kpefk.com.ua",
       "port": 3000
     }
   ]

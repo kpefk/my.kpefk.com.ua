@@ -72,6 +72,9 @@ export const ENDPOINTS = {
   STAFF: {
     LIST: '/staff',
     QUALIFICATION_UPGRADES: (teacherId: string) => `/staff/${teacherId}/qualification-upgrades`,
+    ATTESTATIONS: (teacherId: string) => `/staff/${teacherId}/attestations`,
+    ATTESTATION_ITEM: (teacherId: string, id: string) => `/staff/${teacherId}/attestations/${id}`,
+    ATTESTATIONS_DUE: '/attestations/due',
   },
   ELECTIVES: {
     CATALOG: '/electives/catalog',
@@ -306,6 +309,11 @@ export const ENDPOINTS = {
     GENERATE: (id: string) => `/diplomas/${id}/generate`,
     GENERATE_BULK: '/diplomas/generate-bulk',
   },
+  RATING: {
+    GROUP: (groupId: string) => `/rating/group/${groupId}`,
+    GROUP_EXPORT: (groupId: string) => `/rating/group/${groupId}/export`,
+    BONUS: '/rating/bonus',
+  },
   SURVEYS: {
     MY: '/surveys/my',
     SUBMIT: (id: string) => `/surveys/${id}/submit`,
@@ -314,6 +322,36 @@ export const ENDPOINTS = {
     QUESTIONS: (id: string) => `/surveys/${id}/questions`,
     STATUS: (id: string) => `/surveys/${id}/status`,
     RESULTS: (id: string) => `/surveys/${id}/results`,
+  },
+  CREDIT_RECOGNITION: {
+    LIST: '/credit-recognitions',
+    BY_ID: (id: string) => `/credit-recognitions/${id}`,
+    BY_STUDENT: (studentId: string) => `/credit-recognitions/students/${studentId}`,
+    CONFIRM: (id: string) => `/credit-recognitions/${id}/confirm`,
+    REVERT: (id: string) => `/credit-recognitions/${id}/revert`,
+  },
+  ACADEMIC_MOBILITY: {
+    LIST: '/academic-mobility',
+    BY_ID: (id: string) => `/academic-mobility/${id}`,
+    BY_STUDENT: (studentId: string) => `/academic-mobility/students/${studentId}`,
+    CONFIRM: (id: string) => `/academic-mobility/${id}/confirm`,
+    REVERT: (id: string) => `/academic-mobility/${id}/revert`,
+  },
+  ADMISSIONS: {
+    YEARS: '/admissions/years',
+    OVERVIEW: '/admissions/overview',
+    OFFERS: '/admissions/offers',
+    BY_SPECIALITY: '/admissions/by-speciality',
+    BY_DAY: '/admissions/by-day',
+    KONKURS_DISTRIBUTION: '/admissions/konkurs-distribution',
+    TRENDS: '/admissions/trends',
+    APPLICATIONS: '/admissions/applications',
+    APPLICATIONS_EXPORT: '/admissions/applications/export',
+    SYNC: '/admissions/sync',
+    ARCHIVE: (year: number) => `/admissions/${year}/archive`,
+    SETTINGS: '/admissions/settings',
+    OFFER_SETTINGS: (id: number) => `/admissions/offers/${id}/settings`,
+    AUTO_REGISTER: '/admissions/auto-register',
   },
   DIPLOMA_TEMPLATES: {
     LIST: '/diploma-templates',

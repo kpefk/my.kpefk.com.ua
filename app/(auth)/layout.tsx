@@ -71,6 +71,7 @@ export default function AuthLayout({ children }: Readonly<{ children: React.Reac
           src="/college.png"
           alt="КПЕФК ЛНТУ"
           fill
+          sizes="(min-width: 1024px) 50vw, 0px"
           className="object-cover dark:brightness-[0.25] dark:grayscale"
           priority
         />

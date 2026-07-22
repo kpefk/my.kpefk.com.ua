@@ -15,7 +15,7 @@ import { useAuthStore } from '@/store/auth.store'
 import { useAdminParentInfo, useAdminUpdateParentInfo } from '@/features/group-leader/api'
 import { ParentInfoForm } from '@/features/group-leader/components/ParentInfoForm'
 
-import { formatDate, isStudentActive, type StudentDto } from '../types'
+import { formatDate, isStudentActive, studentStatus, type StudentDto } from '../types'
 
 const PARENT_INFO_ROLES = [
   'HEAD_OF_DEPARTMENT',
@@ -90,6 +90,13 @@ function PersonalTab({ student }: { student: StudentDto }) {
 
       {(!active || student.expelEducationTypeName || student.academicLeaveTypeName) && (
         <InfoSection title="Статус навчання">
+          {studentStatus(student) === 'COMPLETED' && (
+            <InfoField
+              label="Статус"
+              value={`Навчання завершено (${formatDate(student.educationDateEnd)})`}
+              span
+            />
+          )}
           {student.expelEducationTypeName && (
             <InfoField label="Причина відрахування" value={student.expelEducationTypeName} span />
           )}
@@ -171,20 +178,25 @@ export function StudentDetailSheet({ student, open, onClose }: StudentDetailShee
 
   if (!student) return null
 
-  const active = isStudentActive(student)
-  const statusBadge = student.academicLeaveTypeName ? (
-    <Badge className="shrink-0 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-100">
-      Академвідпустка
-    </Badge>
-  ) : student.expelEducationTypeName ? (
-    <Badge className="shrink-0 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-100">
-      Відраховано
-    </Badge>
-  ) : (
-    <Badge className="shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 hover:bg-emerald-100">
-      Навчається
-    </Badge>
-  )
+  const status = studentStatus(student)
+  const statusBadge =
+    status === 'ACADEMIC_LEAVE' ? (
+      <Badge className="shrink-0 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-100">
+        Академвідпустка
+      </Badge>
+    ) : status === 'EXPELLED' ? (
+      <Badge className="shrink-0 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-100">
+        Відраховано
+      </Badge>
+    ) : status === 'COMPLETED' ? (
+      <Badge className="shrink-0 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 whitespace-nowrap">
+        Навчання завершено
+      </Badge>
+    ) : (
+      <Badge className="shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 hover:bg-emerald-100">
+        Навчається
+      </Badge>
+    )
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>

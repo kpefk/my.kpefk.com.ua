@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
+  Award,            // Атестація викладачів
   BarChart3,
   BookMarked,
   BookOpenCheck,
@@ -14,17 +15,23 @@ import {
   ClipboardList,
   ClipboardPen,
   DoorOpen,
+  FileCheck2,       // Перезарахування кредитів
   FileStack,        // Зведені відомості
   FileText,         // Шаблони дипломів
   GraduationCap,
   LayoutDashboard,
   Library,
+  ListChecks,       // Список заяв (вступ)
   MessageSquareText,
+  Plane,            // Академічна мобільність
   School,
   ScrollText,
+  SlidersHorizontal, // Налаштування вступу
   Stamp,            // Генерація дипломів (основна)
+  Trophy,           // Рейтинг успішності
   UserCheck,
   UserCog,
+  UserPlus,         // Вступна кампанія
   Users,
   UserSearch,
 } from "lucide-react";
@@ -76,6 +83,19 @@ const NAV_ITEMS: NavItem[] = [
     ],
   },
   { href: "/academic-groups", icon: Users, label: "Навчальні групи" },
+  { href: "/rating",          icon: Trophy, label: "Рейтинг успішності" },
+  { href: "/credit-recognition", icon: FileCheck2, label: "Перезарахування кредитів" },
+  { href: "/academic-mobility",  icon: Plane,      label: "Академічна мобільність" },
+  {
+    href: "#admissions",
+    icon: UserPlus,
+    label: "Вступна кампанія",
+    subItems: [
+      { href: "/admissions",              icon: BarChart3,         label: "Огляд" },
+      { href: "/admissions/applications", icon: ListChecks,        label: "Список заяв" },
+      { href: "/admissions/settings",     icon: SlidersHorizontal, label: "Налаштування" },
+    ],
+  },
 
   // Для адміністраторів
   { href: "/individual-plans",      icon: ClipboardPen,  label: "Індивідуальні плани" },
@@ -85,6 +105,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/users",                 icon: UserSearch,    label: "Список користувачів" },
   { href: "/students",              icon: GraduationCap, label: "Список студентів" },
   { href: "/teachers",              icon: UserCog,       label: "Список викладачів" },
+  { href: "/attestation",           icon: Award,         label: "Атестація викладачів" },
   { href: "/institution",           icon: Building2,     label: "Про заклад" },
 ];
 

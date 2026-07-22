@@ -13,6 +13,7 @@ import { GroupsTable } from '@/features/groups/components/groups-table'
 import { GroupSyncButton } from '@/features/groups/components/sync-button'
 import {
   DEFAULT_GROUP_FILTERS,
+  isGroupArchived,
   type CuratorOption,
   type GroupDto,
   type GroupFilters,
@@ -67,7 +68,21 @@ export function AcademicGroupsClient() {
       const matchesCurator =
         filters.hasCurator === null ||
         (filters.hasCurator ? g.curator !== null : g.curator === null)
-      return matchesSearch && matchesCourse && matchesFaculty && matchesForm && matchesCurator
+      // null = лише активні (за замовчуванням), true = лише архів, false = всі
+      const matchesArchived =
+        filters.archived === false
+          ? true
+          : filters.archived === true
+            ? isGroupArchived(g)
+            : !isGroupArchived(g)
+      return (
+        matchesSearch &&
+        matchesCourse &&
+        matchesFaculty &&
+        matchesForm &&
+        matchesCurator &&
+        matchesArchived
+      )
     })
   }, [groups, filters])
 

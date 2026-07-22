@@ -35,13 +35,32 @@ function filterToCuratorValue(value: boolean | null): string {
   return 'all'
 }
 
+const ARCHIVED_OPTIONS = [
+  { value: 'active', label: 'Активні' },
+  { value: 'archived', label: 'Архів' },
+  { value: 'all', label: 'Активні + архів' },
+] as const
+
+function archivedValueToFilter(value: string): boolean | null {
+  if (value === 'archived') return true
+  if (value === 'all') return false
+  return null
+}
+
+function filterToArchivedValue(value: boolean | null): string {
+  if (value === true) return 'archived'
+  if (value === false) return 'all'
+  return 'active'
+}
+
 function isDefault(f: GroupFilters, search: string): boolean {
   return (
     search === '' &&
     f.course === null &&
     f.facultyName === null &&
     f.educationFormName === null &&
-    f.hasCurator === null
+    f.hasCurator === null &&
+    f.archived === null
   )
 }
 
@@ -158,6 +177,23 @@ export function GroupsFilters({ filters, onChange, faculties, educationForms }: 
         </SelectTrigger>
         <SelectContent>
           {CURATOR_OPTIONS.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Archived */}
+      <Select
+        value={filterToArchivedValue(filters.archived)}
+        onValueChange={(v) => onChange({ ...filters, archived: archivedValueToFilter(v) })}
+      >
+        <SelectTrigger className="w-[160px] bg-background">
+          <SelectValue placeholder="Активні" />
+        </SelectTrigger>
+        <SelectContent>
+          {ARCHIVED_OPTIONS.map((opt) => (
             <SelectItem key={opt.value} value={opt.value}>
               {opt.label}
             </SelectItem>

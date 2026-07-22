@@ -41,7 +41,7 @@ interface StudentsFiltersProps {
 const STATUS_OPTIONS = [
   { value: 'all', label: 'Всі' },
   { value: 'active', label: 'Навчається' },
-  { value: 'inactive', label: 'Відраховано / Академвідпустка' },
+  { value: 'inactive', label: 'Не навчається (завершили / відраховано / академ.)' },
 ] as const
 
 function statusToFilter(value: string): boolean | null {
