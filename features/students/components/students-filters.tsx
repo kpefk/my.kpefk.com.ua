@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Search, X } from 'lucide-react'
+import { Search } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
+import { FilterField, FiltersDrawer } from '@/components/common/filters-drawer'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -56,14 +56,15 @@ function filterToStatus(value: boolean | null): string {
   return 'all'
 }
 
-function isDefault(f: StudentFilters, search: string): boolean {
-  return (
-    search === '' &&
-    f.courseId === null &&
-    f.groupName === null &&
-    f.educationFormId === null &&
-    f.isActive === null
-  )
+function activeCount(f: StudentFilters, search: string): number {
+  let n = 0
+  if (search.trim() !== '') n++
+  if (f.courseId !== null) n++
+  if (f.groupName !== null) n++
+  if (f.educationFormId !== null) n++
+  // Типовий стан («навчається») бейджем не рахуємо — активним є лише відхилення від нього.
+  if (f.isActive !== DEFAULT_STUDENT_FILTERS.isActive) n++
+  return n
 }
 
 export function StudentsFilters({ filters, onChange, courses, groups, forms }: StudentsFiltersProps) {
@@ -103,94 +104,93 @@ export function StudentsFilters({ filters, onChange, courses, groups, forms }: S
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <div className="relative flex-1 min-w-[220px]">
-        <Search
-          size={15}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-        />
-        <Input
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          placeholder="Пошук за ПІБ або групою..."
-          className="pl-9 bg-background"
-        />
-      </div>
+    <FiltersDrawer activeCount={activeCount(filters, searchValue)} onReset={handleReset}>
+      <FilterField label="Пошук">
+        <div className="relative">
+          <Search
+            size={15}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+          />
+          <Input
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            placeholder="ПІБ або група…"
+            className="pl-9"
+          />
+        </div>
+      </FilterField>
 
-      {/* Курс */}
-      <Select
-        value={filters.courseId !== null ? String(filters.courseId) : 'all'}
-        onValueChange={handleCourseChange}
-      >
-        <SelectTrigger className="w-[140px] bg-background">
-          <SelectValue placeholder="Всі курси" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Всі курси</SelectItem>
-          {courses.map((c) => (
-            <SelectItem key={c.id} value={String(c.id)}>
-              {c.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <FilterField label="Курс">
+        <Select
+          value={filters.courseId !== null ? String(filters.courseId) : 'all'}
+          onValueChange={handleCourseChange}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Всі курси" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Всі курси</SelectItem>
+            {courses.map((c) => (
+              <SelectItem key={c.id} value={String(c.id)}>
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterField>
 
-      {/* Група */}
-      <Select
-        value={filters.groupName ?? 'all'}
-        onValueChange={handleGroupChange}
-      >
-        <SelectTrigger className="w-[160px] bg-background">
-          <SelectValue placeholder="Всі групи" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Всі групи</SelectItem>
-          {filteredGroups.map((g) => (
-            <SelectItem key={g.name} value={g.name}>
-              {g.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <FilterField label="Група">
+        <Select value={filters.groupName ?? 'all'} onValueChange={handleGroupChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="Всі групи" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Всі групи</SelectItem>
+            {filteredGroups.map((g) => (
+              <SelectItem key={g.name} value={g.name}>
+                {g.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterField>
 
-      {/* Форма навчання */}
-      <Select
-        value={filters.educationFormId !== null ? String(filters.educationFormId) : 'all'}
-        onValueChange={handleFormChange}
-      >
-        <SelectTrigger className="w-[180px] bg-background">
-          <SelectValue placeholder="Всі форми" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Всі форми</SelectItem>
-          {forms.map((f) => (
-            <SelectItem key={f.id} value={String(f.id)}>
-              {f.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <FilterField label="Форма навчання">
+        <Select
+          value={filters.educationFormId !== null ? String(filters.educationFormId) : 'all'}
+          onValueChange={handleFormChange}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Всі форми" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Всі форми</SelectItem>
+            {forms.map((f) => (
+              <SelectItem key={f.id} value={String(f.id)}>
+                {f.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterField>
 
-      {/* Статус */}
-      <Select value={filterToStatus(filters.isActive)} onValueChange={(v) => onChange({ ...filters, isActive: statusToFilter(v) })}>
-        <SelectTrigger className="w-[200px] bg-background">
-          <SelectValue placeholder="Всі" />
-        </SelectTrigger>
-        <SelectContent>
-          {STATUS_OPTIONS.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {!isDefault(filters, searchValue) && (
-        <Button variant="ghost" size="sm" onClick={handleReset} className="gap-1.5 text-muted-foreground">
-          <X size={14} />
-          Скинути
-        </Button>
-      )}
-    </div>
+      <FilterField label="Статус">
+        <Select
+          value={filterToStatus(filters.isActive)}
+          onValueChange={(v) => onChange({ ...filters, isActive: statusToFilter(v) })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Всі" />
+          </SelectTrigger>
+          <SelectContent>
+            {STATUS_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterField>
+    </FiltersDrawer>
   )
 }

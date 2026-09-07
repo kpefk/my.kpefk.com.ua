@@ -1,7 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { KeyRound, Loader2, Mail, ShieldOff, Smartphone, UserCheck, UserX } from 'lucide-react'
+import {
+  KeyRound,
+  Link as LinkIcon,
+  Loader2,
+  Mail,
+  ShieldOff,
+  Smartphone,
+  Unlink,
+  UserCheck,
+  UserX,
+} from 'lucide-react'
 
 import {
   AlertDialog,
@@ -34,8 +44,15 @@ import {
 import { USER_ROLE_COLORS, USER_ROLE_LABELS, type UserRole } from '@/lib/types/user-role.types'
 
 import { useAdminReset2FA } from '@/features/auth/api/security'
-import { useDeactivateUser, useResetPassword, useUpdateUser } from '../api'
-import { formatDate, getUserDisplayName, type AdminUserDto } from '../types'
+import {
+  useDeactivateUser,
+  useLinkTeacher,
+  useResetPassword,
+  useUnlinkedTeachers,
+  useUpdateUser,
+} from '../api'
+import { canLinkTeacher, formatDate, getUserDisplayName, type AdminUserDto } from '../types'
+import { Combobox, toTeacherOptions } from './combobox'
 
 function InfoSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -65,10 +82,17 @@ interface UserDetailSheetProps {
 
 export function UserDetailSheet({ user, open, onClose }: UserDetailSheetProps) {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
+  const [teacherId, setTeacherId] = useState('')
   const updateUser = useUpdateUser()
   const deactivateUser = useDeactivateUser()
   const resetPassword = useResetPassword()
   const reset2FA = useAdminReset2FA()
+  const linkTeacher = useLinkTeacher()
+
+  const teacherLinkAllowed = user !== null && canLinkTeacher(user.role)
+  const { data: unlinkedTeachers = [], isFetching: teachersLoading } = useUnlinkedTeachers(
+    open && teacherLinkAllowed
+  )
 
   if (!user) return null
 
@@ -93,10 +117,25 @@ export function UserDetailSheet({ user, open, onClose }: UserDetailSheetProps) {
     updateUser.mutate({ id: user.id, data: { isActive: true } }, { onSuccess: onClose })
   }
 
+  const handleLinkTeacher = () => {
+    if (!teacherId) return
+    linkTeacher.mutate({ id: user.id, teacherId }, { onSuccess: () => setTeacherId('') })
+  }
+
+  const handleUnlinkTeacher = () => {
+    linkTeacher.mutate({ id: user.id, teacherId: null }, { onSuccess: () => setTeacherId('') })
+  }
+
+  const teacherFullName = user.teacher
+    ? [user.teacher.lastName, user.teacher.firstName, user.teacher.middleName]
+        .filter(Boolean)
+        .join(' ')
+    : null
+
   const displayName = getUserDisplayName(user)
 
   return (
-    <Sheet open={open} onOpenChange={(v) => { if (!v) { setSelectedRole(null); onClose() } }}>
+    <Sheet open={open} onOpenChange={(v) => { if (!v) { setSelectedRole(null); setTeacherId(''); onClose() } }}>
       <SheetContent side="right" className="w-full sm:w-[520px] sm:max-w-[520px] flex flex-col gap-0 p-0 overflow-y-auto">
 
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-border">
@@ -152,15 +191,76 @@ export function UserDetailSheet({ user, open, onClose }: UserDetailSheetProps) {
             </InfoSection>
           )}
 
-          {user.teacher && (
-            <InfoSection title="Профіль викладача">
-              <InfoField
-                label="ПІБ"
-                value={[user.teacher.lastName, user.teacher.firstName, user.teacher.middleName].filter(Boolean).join(' ')}
-                span
-              />
-              <InfoField label="Посада" value={user.teacher.positionName} span />
-            </InfoSection>
+          {/* Прив'язка картки викладача (ЄДЕБО) — для викладацьких і керівних ролей */}
+          {teacherLinkAllowed ? (
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Профіль викладача
+              </h3>
+
+              {user.teacher ? (
+                <div className="rounded-md border border-border p-3 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium break-words">{teacherFullName}</p>
+                    <p className="text-xs text-muted-foreground break-words">
+                      {user.teacher.positionName ?? '—'}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 shrink-0"
+                    onClick={handleUnlinkTeacher}
+                    disabled={linkTeacher.isPending}
+                  >
+                    {linkTeacher.isPending ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Unlink size={14} />
+                    )}
+                    Відв&apos;язати
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Картку викладача не прив&apos;язано. Оберіть викладача зі списку.
+                </p>
+              )}
+
+              <div className="flex gap-2">
+                <div className="flex-1 min-w-0">
+                  <Combobox
+                    options={toTeacherOptions(unlinkedTeachers)}
+                    value={teacherId}
+                    onChange={setTeacherId}
+                    placeholder="Пошук за прізвищем або посадою…"
+                    emptyText="Всі викладачі вже мають акаунти"
+                    loading={teachersLoading}
+                    clearable
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  className="gap-1.5 shrink-0"
+                  onClick={handleLinkTeacher}
+                  disabled={!teacherId || linkTeacher.isPending}
+                >
+                  {linkTeacher.isPending ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <LinkIcon size={14} />
+                  )}
+                  {user.teacher ? 'Змінити' : "Прив'язати"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            user.teacher && (
+              <InfoSection title="Профіль викладача">
+                <InfoField label="ПІБ" value={teacherFullName} span />
+                <InfoField label="Посада" value={user.teacher.positionName} span />
+              </InfoSection>
+            )
           )}
 
           {/* Зміна ролі */}

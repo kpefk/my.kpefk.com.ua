@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Search, X } from 'lucide-react'
+import { Search } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
+import { FilterField, FiltersDrawer } from '@/components/common/filters-drawer'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -20,8 +20,12 @@ interface ClassroomsFiltersProps {
   onChange: (f: ClassroomFilters) => void
 }
 
-function isDefault(f: ClassroomFilters, search: string) {
-  return search === '' && f.hasTeacher === null && f.hasPhotos === null
+function activeCount(f: ClassroomFilters, search: string): number {
+  let n = 0
+  if (search.trim() !== '') n++
+  if (f.hasTeacher !== null) n++
+  if (f.hasPhotos !== null) n++
+  return n
 }
 
 export function ClassroomsFilters({ filters, onChange }: ClassroomsFiltersProps) {
@@ -45,55 +49,57 @@ export function ClassroomsFilters({ filters, onChange }: ClassroomsFiltersProps)
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <div className="relative flex-1 min-w-[200px]">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-        <Input
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          placeholder="Пошук за номером, назвою або завідувачем..."
-          className="pl-9 bg-background"
-        />
-      </div>
+    <FiltersDrawer activeCount={activeCount(filters, searchValue)} onReset={handleReset}>
+      <FilterField label="Пошук">
+        <div className="relative">
+          <Search
+            size={15}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+          />
+          <Input
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            placeholder="Номер, назва або завідувач…"
+            className="pl-9"
+          />
+        </div>
+      </FilterField>
 
-      <Select
-        value={filters.hasTeacher === null ? 'all' : filters.hasTeacher ? 'yes' : 'no'}
-        onValueChange={(v) =>
-          onChange({ ...filters, hasTeacher: v === 'all' ? null : v === 'yes' })
-        }
-      >
-        <SelectTrigger className="w-[190px] bg-background">
-          <SelectValue placeholder="Завідувач" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Всі кабінети</SelectItem>
-          <SelectItem value="yes">З завідувачем</SelectItem>
-          <SelectItem value="no">Без завідувача</SelectItem>
-        </SelectContent>
-      </Select>
+      <FilterField label="Завідувач">
+        <Select
+          value={filters.hasTeacher === null ? 'all' : filters.hasTeacher ? 'yes' : 'no'}
+          onValueChange={(v) =>
+            onChange({ ...filters, hasTeacher: v === 'all' ? null : v === 'yes' })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Завідувач" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Всі кабінети</SelectItem>
+            <SelectItem value="yes">З завідувачем</SelectItem>
+            <SelectItem value="no">Без завідувача</SelectItem>
+          </SelectContent>
+        </Select>
+      </FilterField>
 
-      <Select
-        value={filters.hasPhotos === null ? 'all' : filters.hasPhotos ? 'yes' : 'no'}
-        onValueChange={(v) =>
-          onChange({ ...filters, hasPhotos: v === 'all' ? null : v === 'yes' })
-        }
-      >
-        <SelectTrigger className="w-[160px] bg-background">
-          <SelectValue placeholder="Фото" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Всі фото</SelectItem>
-          <SelectItem value="yes">З фото</SelectItem>
-          <SelectItem value="no">Без фото</SelectItem>
-        </SelectContent>
-      </Select>
-
-      {!isDefault(filters, searchValue) && (
-        <Button variant="ghost" size="sm" onClick={handleReset} className="gap-1.5 text-muted-foreground">
-          <X size={14} />
-          Скинути
-        </Button>
-      )}
-    </div>
+      <FilterField label="Фото">
+        <Select
+          value={filters.hasPhotos === null ? 'all' : filters.hasPhotos ? 'yes' : 'no'}
+          onValueChange={(v) =>
+            onChange({ ...filters, hasPhotos: v === 'all' ? null : v === 'yes' })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Фото" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Всі фото</SelectItem>
+            <SelectItem value="yes">З фото</SelectItem>
+            <SelectItem value="no">Без фото</SelectItem>
+          </SelectContent>
+        </Select>
+      </FilterField>
+    </FiltersDrawer>
   )
 }

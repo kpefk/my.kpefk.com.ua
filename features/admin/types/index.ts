@@ -18,11 +18,25 @@ export interface AdminUserDto {
     groupName: string | null
   } | null
   teacher?: {
+    id: string
     lastName: string | null
     firstName: string | null
     middleName: string | null
     positionName: string | null
   } | null
+}
+
+/** Ролі, акаунтам яких можна прив'язати картку викладача (дзеркалить бекенд). */
+export const TEACHER_LINKABLE_ROLES: UserRole[] = [
+  'TEACHER',
+  'HEAD_OF_DEPARTMENT',
+  'DEPUTY_DIRECTOR',
+  'DIRECTOR',
+  'ADMINISTRATOR',
+]
+
+export function canLinkTeacher(role: UserRole): boolean {
+  return TEACHER_LINKABLE_ROLES.includes(role)
 }
 
 export interface UnlinkedStudentDto {

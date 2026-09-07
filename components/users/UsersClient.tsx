@@ -43,10 +43,11 @@ export function UsersClient() {
             {isLoading ? 'Завантаження...' : `${filtered.length} з ${users.length} користувачів`}
           </p>
         </div>
-        <CreateUserDialog />
+        <div className="flex items-center gap-2 shrink-0">
+          <UsersFilters filters={filters} onChange={setFilters} />
+          <CreateUserDialog />
+        </div>
       </div>
-
-      <UsersFilters filters={filters} onChange={setFilters} />
 
       <UsersTable
         users={filtered}

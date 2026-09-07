@@ -40,10 +40,11 @@ export function EducationalProgramsClient() {
             {isLoading ? 'Завантаження...' : `${filtered.length} з ${programs.length} програм`}
           </p>
         </div>
-        <EducationalProgramsSyncButton />
+        <div className="flex items-center gap-2 shrink-0">
+          <EducationalProgramsFilters filters={filters} onChange={setFilters} />
+          <EducationalProgramsSyncButton />
+        </div>
       </div>
-
-      <EducationalProgramsFilters filters={filters} onChange={setFilters} />
       <EducationalProgramsTable programs={filtered} isLoading={isLoading} />
     </div>
   )

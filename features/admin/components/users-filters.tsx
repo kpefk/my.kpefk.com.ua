@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Search, X } from 'lucide-react'
+import { Search } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
+import { FilterField, FiltersDrawer } from '@/components/common/filters-drawer'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -23,8 +23,12 @@ interface UsersFiltersProps {
 
 const ALL_ROLES = Object.entries(USER_ROLE_LABELS) as [UserRole, string][]
 
-function isDefault(f: UserFilters, search: string) {
-  return search === '' && f.role === null && f.isActive === null
+function activeCount(f: UserFilters, search: string): number {
+  let n = 0
+  if (search.trim() !== '') n++
+  if (f.role !== null) n++
+  if (f.isActive !== null) n++
+  return n
 }
 
 export function UsersFilters({ filters, onChange }: UsersFiltersProps) {
@@ -48,54 +52,58 @@ export function UsersFilters({ filters, onChange }: UsersFiltersProps) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <div className="relative flex-1 min-w-[220px]">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-        <Input
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          placeholder="Пошук за email або ПІБ..."
-          className="pl-9 bg-background"
-        />
-      </div>
+    <FiltersDrawer activeCount={activeCount(filters, searchValue)} onReset={handleReset}>
+      <FilterField label="Пошук">
+        <div className="relative">
+          <Search
+            size={15}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+          />
+          <Input
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            placeholder="Email або ПІБ…"
+            className="pl-9"
+          />
+        </div>
+      </FilterField>
 
-      <Select
-        value={filters.role ?? 'all'}
-        onValueChange={(v) => onChange({ ...filters, role: v === 'all' ? null : v as UserRole })}
-      >
-        <SelectTrigger className="w-[200px] bg-background">
-          <SelectValue placeholder="Всі ролі" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Всі ролі</SelectItem>
-          {ALL_ROLES.map(([value, label]) => (
-            <SelectItem key={value} value={value}>{label}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <FilterField label="Роль">
+        <Select
+          value={filters.role ?? 'all'}
+          onValueChange={(v) => onChange({ ...filters, role: v === 'all' ? null : (v as UserRole) })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Всі ролі" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Всі ролі</SelectItem>
+            {ALL_ROLES.map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterField>
 
-      <Select
-        value={filters.isActive === null ? 'all' : filters.isActive ? 'active' : 'inactive'}
-        onValueChange={(v) =>
-          onChange({ ...filters, isActive: v === 'all' ? null : v === 'active' })
-        }
-      >
-        <SelectTrigger className="w-[150px] bg-background">
-          <SelectValue placeholder="Всі" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Всі</SelectItem>
-          <SelectItem value="active">Активні</SelectItem>
-          <SelectItem value="inactive">Деактивовані</SelectItem>
-        </SelectContent>
-      </Select>
-
-      {!isDefault(filters, searchValue) && (
-        <Button variant="ghost" size="sm" onClick={handleReset} className="gap-1.5 text-muted-foreground">
-          <X size={14} />
-          Скинути
-        </Button>
-      )}
-    </div>
+      <FilterField label="Статус акаунту">
+        <Select
+          value={filters.isActive === null ? 'all' : filters.isActive ? 'active' : 'inactive'}
+          onValueChange={(v) =>
+            onChange({ ...filters, isActive: v === 'all' ? null : v === 'active' })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Всі" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Всі</SelectItem>
+            <SelectItem value="active">Активні</SelectItem>
+            <SelectItem value="inactive">Деактивовані</SelectItem>
+          </SelectContent>
+        </Select>
+      </FilterField>
+    </FiltersDrawer>
   )
 }

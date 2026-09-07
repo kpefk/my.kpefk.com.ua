@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Search, X } from 'lucide-react'
+import { Search } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
+import { FilterField, FiltersDrawer } from '@/components/common/filters-drawer'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -51,13 +51,13 @@ function filterToStatus(value: boolean | null): string {
   return 'all'
 }
 
-function isDefaultFilters(f: TeacherFilters): boolean {
-  return (
-    f.search === DEFAULT_FILTERS.search &&
-    f.facultyId === DEFAULT_FILTERS.facultyId &&
-    f.chairId === DEFAULT_FILTERS.chairId &&
-    f.isActive === DEFAULT_FILTERS.isActive
-  )
+function activeCount(f: TeacherFilters, search: string): number {
+  let n = 0
+  if (search.trim() !== DEFAULT_FILTERS.search) n++
+  if (f.facultyId !== DEFAULT_FILTERS.facultyId) n++
+  if (f.chairId !== DEFAULT_FILTERS.chairId) n++
+  if (f.isActive !== DEFAULT_FILTERS.isActive) n++
+  return n
 }
 
 export function TeachersFilters({ filters, onChange, faculties, chairs }: TeachersFiltersProps) {
@@ -99,79 +99,75 @@ export function TeachersFilters({ filters, onChange, faculties, chairs }: Teache
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      {/* Search */}
-      <div className="relative flex-1 min-w-[220px]">
-        <Search
-          size={15}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-        />
-        <Input
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          placeholder="Пошук за ім'ям, посадою, кафедрою..."
-          className="pl-9 bg-background"
-        />
-      </div>
+    <FiltersDrawer activeCount={activeCount(filters, searchValue)} onReset={handleReset}>
+      <FilterField label="Пошук">
+        <div className="relative">
+          <Search
+            size={15}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+          />
+          <Input
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            placeholder="Ім'я, посада, кафедра…"
+            className="pl-9"
+          />
+        </div>
+      </FilterField>
 
-      {/* Faculty */}
-      <Select
-        value={filters.facultyId !== null ? String(filters.facultyId) : 'all'}
-        onValueChange={handleFacultyChange}
-      >
-        <SelectTrigger className="w-[200px] bg-background">
-          <SelectValue placeholder="Всі факультети" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Всі факультети</SelectItem>
-          {faculties.map((f) => (
-            <SelectItem key={f.id} value={String(f.id)}>
-              {f.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <FilterField label="Факультет">
+        <Select
+          value={filters.facultyId !== null ? String(filters.facultyId) : 'all'}
+          onValueChange={handleFacultyChange}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Всі факультети" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Всі факультети</SelectItem>
+            {faculties.map((f) => (
+              <SelectItem key={f.id} value={String(f.id)}>
+                {f.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterField>
 
-      {/* Chair */}
-      <Select
-        value={filters.chairId !== null ? String(filters.chairId) : 'all'}
-        onValueChange={handleChairChange}
-        disabled={faculties.length === 0}
-      >
-        <SelectTrigger className="w-[200px] bg-background">
-          <SelectValue placeholder="Всі кафедри" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Всі кафедри</SelectItem>
-          {filteredChairs.map((c) => (
-            <SelectItem key={c.id} value={String(c.id)}>
-              {c.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <FilterField label="Кафедра">
+        <Select
+          value={filters.chairId !== null ? String(filters.chairId) : 'all'}
+          onValueChange={handleChairChange}
+          disabled={faculties.length === 0}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Всі кафедри" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Всі кафедри</SelectItem>
+            {filteredChairs.map((c) => (
+              <SelectItem key={c.id} value={String(c.id)}>
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterField>
 
-      {/* Status */}
-      <Select value={filterToStatus(filters.isActive)} onValueChange={handleStatusChange}>
-        <SelectTrigger className="w-[160px] bg-background">
-          <SelectValue placeholder="Всі" />
-        </SelectTrigger>
-        <SelectContent>
-          {STATUS_OPTIONS.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* Reset — only when filters differ from default */}
-      {!isDefaultFilters({ ...filters, search: searchValue }) && (
-        <Button variant="ghost" size="sm" onClick={handleReset} className="gap-1.5 text-muted-foreground">
-          <X size={14} />
-          Скинути
-        </Button>
-      )}
-    </div>
+      <FilterField label="Статус">
+        <Select value={filterToStatus(filters.isActive)} onValueChange={handleStatusChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="Всі" />
+          </SelectTrigger>
+          <SelectContent>
+            {STATUS_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterField>
+    </FiltersDrawer>
   )
 }

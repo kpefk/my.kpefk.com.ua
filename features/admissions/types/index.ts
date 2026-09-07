@@ -110,6 +110,7 @@ export interface AdmissionApplicationRowDto {
   entryEduDocSeries: string | null
   entryEduDocNumber: string | null
   entryEduDocYearEnd: number | null
+  entryEduDocDateGet: string | null
 }
 
 export interface AdmissionSyncResult {

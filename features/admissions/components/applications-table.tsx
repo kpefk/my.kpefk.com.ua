@@ -25,6 +25,7 @@ interface SortState {
 interface ApplicationsTableProps {
   applications: AdmissionApplicationRowDto[]
   isLoading: boolean
+  onRowClick?: (application: AdmissionApplicationRowDto) => void
 }
 
 function SortIcon({ column, sort }: { column: SortColumn; sort: SortState }) {
@@ -91,7 +92,11 @@ function sortApplications(
 
 const SKELETON_ROWS = 8
 
-export function ApplicationsTable({ applications, isLoading }: ApplicationsTableProps) {
+export function ApplicationsTable({
+  applications,
+  isLoading,
+  onRowClick,
+}: ApplicationsTableProps) {
   const [sort, setSort] = useState<SortState>({ column: null, direction: 'asc' })
 
   const handleSort = (column: SortColumn) => {
@@ -208,7 +213,11 @@ export function ApplicationsTable({ applications, isLoading }: ApplicationsTable
 
             {!isLoading &&
               sorted.map((a, i) => (
-                <TableRow key={a.personRequestId}>
+                <TableRow
+                  key={a.personRequestId}
+                  onClick={() => onRowClick?.(a)}
+                  className={onRowClick ? 'cursor-pointer' : undefined}
+                >
                   <TableCell className="text-center text-xs text-muted-foreground tabular-nums">
                     {i + 1}
                   </TableCell>
@@ -239,10 +248,10 @@ export function ApplicationsTable({ applications, isLoading }: ApplicationsTable
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">
                     {a.entryEduDocNumber ? (
-                      <span title={a.entryEduDocTypeName ?? undefined}>
+                      <span title={a.entryEduDocTypeName ?? undefined} className="inline-flex flex-col items-start">
                         <span className="tabular-nums">{eduDocNumber(a)}</span>
-                        {a.entryEduDocYearEnd ? (
-                          <span className="text-muted-foreground/70"> · {a.entryEduDocYearEnd}</span>
+                        {a.entryEduDocDateGet ? (
+                          <span className="text-muted-foreground/60">{new Date(a.entryEduDocDateGet).toLocaleDateString('uk-UA')}</span>
                         ) : null}
                       </span>
                     ) : (

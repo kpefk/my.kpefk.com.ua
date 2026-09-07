@@ -14,7 +14,9 @@ import {
   DEFAULT_APPLICATION_FILTERS,
   filterApplications,
 } from '../types'
+import type { AdmissionApplicationRowDto } from '../types'
 import { AdmissionsGuard } from './admissions-guard'
+import { ApplicationDetailSheet } from './application-detail-sheet'
 import { ApplicationsFiltersDrawer } from './applications-filters-drawer'
 import { ApplicationsTable } from './applications-table'
 import { useAdmissionYear } from './use-admission-year'
@@ -102,6 +104,8 @@ function ApplicationsSection({
 }) {
   const [shown, setShown] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [selected, setSelected] = useState<AdmissionApplicationRowDto | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
   const { data: apps = [], isLoading } = useAdmissionApplications(year, shown)
 
   const filtered = useMemo(() => filterApplications(apps, filters), [apps, filters])
@@ -161,7 +165,14 @@ function ApplicationsSection({
         </p>
       ) : (
         <>
-          <ApplicationsTable applications={filtered} isLoading={isLoading} />
+          <ApplicationsTable
+            applications={filtered}
+            isLoading={isLoading}
+            onRowClick={(a) => {
+              setSelected(a)
+              setDetailOpen(true)
+            }}
+          />
           <ApplicationsFiltersDrawer
             open={filtersOpen}
             onOpenChange={setFiltersOpen}
@@ -169,6 +180,11 @@ function ApplicationsSection({
             onChange={onFiltersChange}
             statuses={statuses}
             specialities={specialities}
+          />
+          <ApplicationDetailSheet
+            application={selected}
+            open={detailOpen}
+            onOpenChange={setDetailOpen}
           />
         </>
       )}

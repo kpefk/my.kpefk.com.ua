@@ -27,8 +27,10 @@ export const ENDPOINTS = {
     RESET_PASSWORD: (id: string) => `/users/${id}/reset-password`,
   },
   ADMIN: {
+    DASHBOARD_STATS: '/admin/dashboard-stats',
     USERS: '/admin/users',
     USER: (id: string) => `/admin/users/${id}`,
+    USER_TEACHER: (id: string) => `/admin/users/${id}/teacher`,
     UNLINKED_STUDENTS: '/admin/unlinked-students',
     UNLINKED_TEACHERS: '/admin/unlinked-teachers',
   },

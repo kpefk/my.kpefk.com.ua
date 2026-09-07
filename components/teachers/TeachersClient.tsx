@@ -67,10 +67,11 @@ export function TeachersClient() {
             {isLoading ? 'Завантаження...' : `${filtered.length} з ${teachers.length} викладачів`}
           </p>
         </div>
-        <SyncButton />
+        <div className="flex items-center gap-2 shrink-0">
+          <TeachersFilters filters={filters} onChange={setFilters} faculties={faculties} chairs={chairs} />
+          <SyncButton />
+        </div>
       </div>
-
-      <TeachersFilters filters={filters} onChange={setFilters} faculties={faculties} chairs={chairs} />
 
       <TeachersTable teachers={filtered} isLoading={isLoading} onRowClick={(t) => { setSelectedTeacher(t); setSheetOpen(true) }} />
 

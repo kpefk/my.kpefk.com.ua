@@ -55,13 +55,14 @@ export function ClassroomsClient() {
             {isLoading ? 'Завантаження...' : `${filtered.length} з ${classrooms.length} кабінетів`}
           </p>
         </div>
-        <Button className="gap-2 shrink-0" onClick={() => setCreateOpen(true)}>
-          <Plus size={16} />
-          Додати кабінет
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <ClassroomsFilters filters={filters} onChange={setFilters} />
+          <Button className="gap-2" onClick={() => setCreateOpen(true)}>
+            <Plus size={16} />
+            Додати кабінет
+          </Button>
+        </div>
       </div>
-
-      <ClassroomsFilters filters={filters} onChange={setFilters} />
 
       <ClassroomsTable
         classrooms={filtered}

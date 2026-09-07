@@ -74,6 +74,21 @@ export function useUpdateUser() {
   })
 }
 
+/** Прив'язує (teacherId) або відв'язує (null) картку викладача для акаунту. */
+export function useLinkTeacher() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, teacherId }: { id: string; teacherId: string | null }) =>
+      apiPatch<AdminUserDto>(ENDPOINTS.ADMIN.USER_TEACHER(id), { teacherId }),
+    onSuccess: (user, { teacherId }) => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.users() })
+      queryClient.invalidateQueries({ queryKey: adminKeys.unlinkedTeachers() })
+      queryClient.setQueryData(adminKeys.user(user.id), user)
+      toast.success(teacherId ? 'Викладача прив’язано до акаунту' : 'Викладача відв’язано')
+    },
+  })
+}
+
 export function useDeactivateUser() {
   const queryClient = useQueryClient()
   return useMutation({

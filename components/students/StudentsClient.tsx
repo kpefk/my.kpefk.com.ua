@@ -81,10 +81,11 @@ export function StudentsClient() {
             {isLoading ? 'Завантаження...' : `${filtered.length} з ${students.length} студентів`}
           </p>
         </div>
-        <StudentSyncButton />
+        <div className="flex items-center gap-2 shrink-0">
+          <StudentsFilters filters={filters} onChange={setFilters} courses={courses} groups={groups} forms={forms} />
+          <StudentSyncButton />
+        </div>
       </div>
-
-      <StudentsFilters filters={filters} onChange={setFilters} courses={courses} groups={groups} forms={forms} />
 
       <StudentsTable
         students={filtered}

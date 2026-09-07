@@ -1,14 +1,12 @@
+/**
+ * Рядок списку студентів. Дзеркалить серверну проекцію `STUDENT_LIST_SELECT`
+ * — без ПДн (РНОКПП, паспорт, студквиток): вони доступні лише в профілі особи.
+ */
 export interface StudentDto {
   id: string
   userId: string | null
-  universityId: number
   personId: number
   educationId: number
-  personCodeU: string
-  educationHistoryActualId: number
-  dateBegin: string | null
-  dateEnd: string | null
-  historyTypeId: number
 
   // Персональні дані
   personFIO: string
@@ -20,7 +18,6 @@ export interface StudentDto {
   educationDateBegin: string | null
   educationDateEnd: string | null
   facultyName: string | null
-  qualificationGroupId: number | null
   qualificationGroupName: string | null
   educationFormId: number | null
   educationFormName: string | null
@@ -28,7 +25,6 @@ export interface StudentDto {
   isSecondHigher: boolean | null
   isShortTerm: boolean | null
   fullSpecialityName: string | null
-  universityStudyProgramId: number | null
   studyProgramName: string | null
   professionInfo: string | null
   courseId: number | null
@@ -40,14 +36,10 @@ export interface StudentDto {
   academicLeaveTypeName: string | null
 
   // Іноземці
-  foreignTypeId: number | null
   foreignTypeName: string | null
 
   // Переведення на бюджет
-  budgetTransferCategoryId: number | null
   budgetTransferCategoryName: string | null
-
-  isForPhdRenewal: boolean | null
 
   // Службові
   createdAt: string
@@ -68,7 +60,8 @@ export const DEFAULT_STUDENT_FILTERS: StudentFilters = {
   courseId: null,
   groupName: null,
   educationFormId: null,
-  isActive: null,
+  // Типово показуємо лише тих, хто навчається — випускники/відраховані за потреби через фільтр.
+  isActive: true,
 }
 
 export type StudentStatus = 'ACADEMIC_LEAVE' | 'EXPELLED' | 'COMPLETED' | 'STUDYING'

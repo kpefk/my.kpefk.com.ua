@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Search, X } from 'lucide-react'
+import { Search } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
+import { FilterField, FiltersDrawer } from '@/components/common/filters-drawer'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -25,8 +25,11 @@ export const DEFAULT_EP_FILTERS: EducationalProgramFilters = {
   isActive: null,
 }
 
-function isDefault(f: EducationalProgramFilters, searchValue: string): boolean {
-  return searchValue === '' && f.isActive === null
+function activeCount(f: EducationalProgramFilters, search: string): number {
+  let n = 0
+  if (search.trim() !== '') n++
+  if (f.isActive !== null) n++
+  return n
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -70,45 +73,34 @@ export function EducationalProgramsFilters({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      {/* Search */}
-      <div className="relative flex-1 min-w-[220px]">
-        <Search
-          size={15}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-        />
-        <Input
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          placeholder="Пошук за назвою, спеціальністю…"
-          className="pl-9 bg-background"
-        />
-      </div>
+    <FiltersDrawer activeCount={activeCount(filters, searchValue)} onReset={handleReset}>
+      <FilterField label="Пошук">
+        <div className="relative">
+          <Search
+            size={15}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+          />
+          <Input
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            placeholder="Назва або спеціальність…"
+            className="pl-9"
+          />
+        </div>
+      </FilterField>
 
-      {/* Status */}
-      <Select value={statusValue} onValueChange={handleStatusChange}>
-        <SelectTrigger className="w-[180px] bg-background">
-          <SelectValue placeholder="Всі статуси" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Всі статуси</SelectItem>
-          <SelectItem value="active">Активні</SelectItem>
-          <SelectItem value="blocked">Заблоковані</SelectItem>
-        </SelectContent>
-      </Select>
-
-      {/* Reset */}
-      {!isDefault(filters, searchValue) && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleReset}
-          className="gap-1.5 text-muted-foreground"
-        >
-          <X size={14} />
-          Скинути
-        </Button>
-      )}
-    </div>
+      <FilterField label="Статус">
+        <Select value={statusValue} onValueChange={handleStatusChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="Всі статуси" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Всі статуси</SelectItem>
+            <SelectItem value="active">Активні</SelectItem>
+            <SelectItem value="blocked">Заблоковані</SelectItem>
+          </SelectContent>
+        </Select>
+      </FilterField>
+    </FiltersDrawer>
   )
 }
