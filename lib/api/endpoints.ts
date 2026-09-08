@@ -65,6 +65,7 @@ export const ENDPOINTS = {
   },
   STUDENTS: {
     LIST: '/students',
+    PROVISION_ALL_EMAILS: '/students/provision-all-emails',
   },
   GROUPS: {
     LIST: '/groups',
